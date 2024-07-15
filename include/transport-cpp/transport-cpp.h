@@ -9,6 +9,7 @@
 
 using RETURN_CODE       = int;
 using DEVICE_HANDLE_    = int;
+using SYS_ERR_CODE      = int;
 
 namespace RETURN {
 static constexpr RETURN_CODE OK         = 0;

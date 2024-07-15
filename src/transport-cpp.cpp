@@ -3,8 +3,8 @@
 
 #include <iostream>
 
-namespace Transport{
-namespace Information{
+
+namespace Transport::Information{
 
 const char* version(){
     return "0.1";
@@ -152,4 +152,4 @@ Subsystem subsystem()
 }
 
 }
-}
+

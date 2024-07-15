@@ -13,9 +13,7 @@ Engine::~Engine()
     }
 }
 
-Engine::Engine(){
-
-}
+Engine::Engine()= default;
 
 RETURN_CODE Context::Engine::registerDevice(std::shared_ptr<Device> device) noexcept
 {
@@ -54,16 +52,22 @@ Engine::ERROR Engine::getLastError() const noexcept
 
 void Engine::awaitOnce(const std::optional<std::chrono::milliseconds> &optional_duration)
 {
+    int timeout = -1;
+
     if(optional_duration){
         auto duration = optional_duration.value();
 
-        awaitOnceUpto(static_cast<int>(duration.count()));
-    }else{
-        while(!awaitOnceUpto(std::numeric_limits<int>::max())){
-            logWarn("Engine", "When awaiting once without a timeout. "
-                              "Poll returned with no events pending even with the large timeout");
+        if(duration.count() > std::numeric_limits<decltype(timeout)>::max()){
+            logWarn("Engine/awaitOnce", "Provided timeout exceeds the system max duration of " +
+                    std::to_string(std::numeric_limits<decltype(timeout)>::max()) + " milliseconds. Clamping to max");
+
+            timeout = std::numeric_limits<decltype(timeout)>::max();
+        }else{
+            timeout = static_cast<decltype (timeout)>(duration.count());
         }
     }
+
+    awaitOnceUpto(timeout);
 }
 
 void Engine::awaitFor(const std::chrono::milliseconds &duration)
@@ -74,6 +78,10 @@ void Engine::awaitFor(const std::chrono::milliseconds &duration)
     while(elapsed < duration){
         auto remaining = duration - elapsed;
         auto remaining_ms = std::chrono::duration_cast<std::chrono::milliseconds>(remaining).count();
+
+        if(remaining_ms > std::numeric_limits<int>::max()){
+            remaining_ms = std::numeric_limits<int>::max();
+        }
 
         awaitOnceUpto(static_cast<int>(remaining_ms));
 
@@ -89,57 +97,94 @@ void Engine::awaitFor(const std::chrono::milliseconds &duration)
 
 bool Engine::awaitOnceUpto(int ms)
 {
-  auto res = poll(mPollDevices.data(), mPollDevices.size(), ms);
-  int count = 0;
+    auto res = poll(mPollDevices.data(), mPollDevices.size(), ms);
+    int count = 0;
 
-  if(res <= 0){
-      return false;
-  }
-
-  std::vector<DEVICE_HANDLE_> ready_read;
-  std::vector<DEVICE_HANDLE_> ready_write;
-  std::vector<DEVICE_HANDLE_> error;
-
-  ready_read.reserve(static_cast<size_t>(res));
-  ready_write.reserve(static_cast<size_t>(res));
-  error.reserve(static_cast<size_t>(res));
-
-  for(const auto &fd:mPollDevices){
-    if(fd.revents == POLLIN){
-      ready_read.push_back(fd.fd);
-      count++;
-    }else if(fd.revents == POLLOUT){
-      ready_write.push_back(fd.fd);
-      count++;
-    }else if(fd.revents == POLLERR){
-      error.push_back(fd.fd);
-      count++;
+    if(res <= 0){
+        return false;
     }
 
-    if(count >= res){
-      break;
-    }
-  }
+    static thread_local std::vector<DEVICE_HANDLE_> ready_read(256);
+    static thread_local std::vector<DEVICE_HANDLE_> ready_write(256);
+    static thread_local std::vector<DEVICE_HANDLE_> error(256);
+    static thread_local std::vector<DEVICE_HANDLE_> hangup(256);
+    static thread_local std::vector<DEVICE_HANDLE_> invalid(256);
+    static thread_local std::vector<DEVICE_HANDLE_> peer_disconnect(256);
 
-  for(const auto &poll_in:ready_read){
-    if(mDeviceMapping.find(poll_in) != mDeviceMapping.end()){
-      mDeviceMapping[poll_in]->readyRead();
-    }
-  }
+    ready_read.clear();
+    ready_write.clear();
+    error.clear();
+    hangup.clear();
+    invalid.clear();
+    peer_disconnect.clear();
 
-  for(const auto &poll_out:ready_write){
-    if(mDeviceMapping.find(poll_out) != mDeviceMapping.end()){
-      mDeviceMapping[poll_out]->readyWrite();
-    }
-  }
+//    ready_read.reserve(static_cast<size_t>(res));
+//    ready_write.reserve(static_cast<size_t>(res));
+//    error.reserve(static_cast<size_t>(res));
 
-  for(const auto &poll_err:error){
-    if(mDeviceMapping.find(poll_err) != mDeviceMapping.end()){
-      mDeviceMapping[poll_err]->readyError();
-    }
-  }
+    for(const auto &fd:mPollDevices){
+        if(fd.revents == POLLIN){
+            ready_read.push_back(fd.fd);
+            count++;
+        }else if(fd.revents == POLLOUT){
+            ready_write.push_back(fd.fd);
+            count++;
+        }else if(fd.revents == POLLERR){
+            error.push_back(fd.fd);
+            count++;
+        }else if(fd.revents == POLLHUP){
+            hangup.push_back(fd.fd);
+            count++;
+        }else if(fd.revents == POLLNVAL){
+            invalid.push_back(fd.fd);
+            count++;
+        }else if(fd.revents == POLLRDHUP){
+            peer_disconnect.push_back(fd.fd);
+            count++;
+        }
 
-  return true;
+        if(count >= res){
+            break;
+        }
+    }
+
+    for(const auto &poll_in:ready_read){
+        if(mDeviceMapping.find(poll_in) != mDeviceMapping.end()){
+            mDeviceMapping[poll_in]->readyRead();
+        }
+    }
+
+    for(const auto &poll_out:ready_write){
+        if(mDeviceMapping.find(poll_out) != mDeviceMapping.end()){
+            mDeviceMapping[poll_out]->readyWrite();
+        }
+    }
+
+    for(const auto &poll_err:error){
+        if(mDeviceMapping.find(poll_err) != mDeviceMapping.end()){
+            mDeviceMapping[poll_err]->readyError();
+        }
+    }
+
+    for(const auto &hangup:hangup){
+        if(mDeviceMapping.find(hangup) != mDeviceMapping.end()){
+            mDeviceMapping[hangup]->readyHangup();
+        }
+    }
+
+    for(const auto &inval:invalid){
+        if(mDeviceMapping.find(inval) != mDeviceMapping.end()){
+            mDeviceMapping[inval]->readyInvalidRequest();
+        }
+    }
+
+    for(const auto &disc:peer_disconnect){
+        if(mDeviceMapping.find(disc) != mDeviceMapping.end()){
+            mDeviceMapping[disc]->readyPeerDisconnect();
+        }
+    }
+
+    return true;
 }
 
 RETURN_CODE Engine::registerDevice(Device *device)
@@ -210,7 +255,7 @@ RETURN_CODE Engine::registerNewHandle(
         mPollDevices.push_back(fd);
         mDeviceMapping.insert({fd.fd, relevant_device});
 
-        auto it_to_poll = (mPollDevices.end() - 1);
+        const auto it_to_poll = (mPollDevices.end() - 1);
 
         relevant_device->loadPollStructure(it_to_poll);
 

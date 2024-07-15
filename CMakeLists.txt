@@ -6,10 +6,31 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(HEADER_DIR include/transport-cpp)
+
+set(HEADERS
+    ${HEADER_DIR}/device.h
+    ${HEADER_DIR}/engine.h
+    ${HEADER_DIR}/iodevice.h
+    ${HEADER_DIR}/timer.h
+    ${HEADER_DIR}/transport-cpp.h
+    ${HEADER_DIR}/io/serial.h
+    ${HEADER_DIR}/networking/networkdevice.h
+    ${HEADER_DIR}/networking/tcpclient.h
+)
+
 add_library(transport-cpp 
+    ${HEADERS}
+
     src/transport-cpp.cpp
     src/engine.cpp
     src/device.cpp
+    src/timer.cpp
+    src/iodevice.cpp
+    src/networkdevice.cpp
+    src/serial.cpp
+    src/tcpclient.cpp
+
 )
 
 # set_target_properties(transport-cpp PROPERTIES PUBLIC_HEADER "include/transport-cpp.h")

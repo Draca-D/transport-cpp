@@ -66,9 +66,29 @@ void Device::readyError()
     logError("Device", "Device has an error, but functionality has not been implemented by child");
 }
 
+void Device::readyHangup()
+{
+    logWarn("Device", "Device peer has hung up, but functionality has not been implemented by child");
+}
+
+void Device::readyInvalidRequest()
+{
+    logWarn("Device", "Invalid request, but functionality has not been implemented by child");
+}
+
+void Device::readyPeerDisconnect()
+{
+    logWarn("Device", "Peer has disconnected, but functionality has not been implemented by child");
+}
+
 Device::DEVICE_HANDLE Device::getDeviceHandle() const noexcept
 {
     return mDeviceHandle;
+}
+
+Device::ERROR Device::getLastError() const noexcept
+{
+    return mLastError;
 }
 
 Device::Device()
@@ -85,6 +105,32 @@ void Device::registerNewHandle(DEVICE_HANDLE handle)
     }
 
     mDeviceHandle = handle;
+}
+
+void Device::setError(DEVICE_ERROR code, const ERROR_STRING &description)
+{
+    logDebug("Device", "New error added with description: " + description);
+
+    mLastError.code         = code;
+    mLastError.description  = description;
+}
+
+void Device::requestRead()
+{
+    if(!mPollPtrValid){
+        return;
+    }
+
+    mLoadedPoll->events = POLLIN;
+}
+
+void Device::requestWrite()
+{
+    if(!mPollPtrValid){
+        return;
+    }
+
+    mLoadedPoll->events = POLLOUT;
 }
 
 void Device::logDebug(const std::string &calling_class, const std::string &message)
