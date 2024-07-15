@@ -221,7 +221,6 @@ RETURN_CODE Engine::deRegisterDevice(Device *device)
         device->deloadEngine();
     }
 
-    device->deloadPollStructure();
     deRegisterHandle(device->getDeviceHandle());
 
     auto device_item = std::find(mDeviceList.begin(), mDeviceList.end(), device);
@@ -241,7 +240,6 @@ RETURN_CODE Engine::registerNewHandle(
     logDebug("Engine", "Registering new handle");
 
     if(!new_handle){
-        setError(ERROR_CODE::INVALID_ARGUMENT, "When registering a new handle, a new handle was not provided.");
         return RETURN::PASSABLE;
     }
 
@@ -254,10 +252,6 @@ RETURN_CODE Engine::registerNewHandle(
 
         mPollDevices.push_back(fd);
         mDeviceMapping.insert({fd.fd, relevant_device});
-
-        const auto it_to_poll = (mPollDevices.end() - 1);
-
-        relevant_device->loadPollStructure(it_to_poll);
 
         return RETURN::OK;
     }
@@ -336,6 +330,28 @@ void Engine::logError(const std::string &calling_class, const std::string &messa
 void Engine::logFatal(const std::string &calling_class, const std::string &message)
 {
     printf("[FATAL][%s]: %s\n", calling_class.c_str(), message.c_str());
+}
+
+void Engine::requestRead(const DEVICE_HANDLE &handle)
+{
+    auto pollfd_it = findHandleInList(handle);
+
+    if(pollfd_it == mPollDevices.end()){
+        return;
+    }
+
+    pollfd_it->events = POLLIN;
+}
+
+void Engine::requestWrite(const DEVICE_HANDLE &handle)
+{
+    auto pollfd_it = findHandleInList(handle);
+
+    if(pollfd_it == mPollDevices.end()){
+        return;
+    }
+
+    pollfd_it->events = POLLOUT;
 }
 
 }

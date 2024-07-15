@@ -19,7 +19,7 @@ class TRANSPORT_CPP_EXPORT Device
 
     using POLL_STRUCT   = pollfd;
     using DEVICE_HANDLE = std::optional<DEVICE_HANDLE_>;
-    using ENGINE_PTR    = std::add_pointer<Engine>::type;
+    using ENGINE_PTR    = Engine*;
     using POLL_PTR      = std::vector<POLL_STRUCT>::iterator;
     using ERROR_STRING  = std::string;
 
@@ -30,7 +30,8 @@ public:
         INVALID_LOGIC,
         DEVICE_NOT_READY,
         POLL_ERROR,
-        TIMEOUT
+        TIMEOUT,
+        GENERAL_ERROR
     };
 
     using DEVICE_ERROR  = std::variant<ERROR_CODE, SYS_ERR_CODE>;
@@ -43,16 +44,11 @@ public:
 private:
     DEVICE_HANDLE   mDeviceHandle;
     ENGINE_PTR      mLoadedEngine   = nullptr;
-    POLL_PTR        mLoadedPoll;
-    bool            mPollPtrValid   = false;
     ERROR           mLastError      = {ERROR_CODE::NO_ERROR, ""};
 
 private:
     void loadEngine(ENGINE_PTR engine);
     void deloadEngine();
-
-    void loadPollStructure(POLL_PTR poll);
-    void deloadPollStructure();
 
     //Device Ready
     virtual void readyRead();
@@ -78,6 +74,7 @@ protected:
 
     void requestRead();
     void requestWrite();
+    void destroyHandle();
 
     void logDebug(const std::string &calling_class, const std::string &message);
     void logInfo(const std::string &calling_class, const std::string &message);

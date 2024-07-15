@@ -37,19 +37,6 @@ void Context::Device::deloadEngine()
 
 }
 
-void Context::Device::loadPollStructure(POLL_PTR poll)
-{
-    logDebug("Device", "Loading new poll structure");
-
-    mPollPtrValid   = true;
-    mLoadedPoll     = poll;
-}
-
-void Context::Device::deloadPollStructure()
-{
-    logDebug("Device", "Deloading poll structure");
-    mPollPtrValid = false;
-}
 
 void Device::readyRead()
 {
@@ -117,20 +104,24 @@ void Device::setError(DEVICE_ERROR code, const ERROR_STRING &description)
 
 void Device::requestRead()
 {
-    if(!mPollPtrValid){
-        return;
+    if(mLoadedEngine){
+        mLoadedEngine->requestRead(mDeviceHandle);
     }
-
-    mLoadedPoll->events = POLLIN;
 }
 
 void Device::requestWrite()
 {
-    if(!mPollPtrValid){
-        return;
+    if(mLoadedEngine){
+        mLoadedEngine->requestWrite(mDeviceHandle);
     }
+}
 
-    mLoadedPoll->events = POLLOUT;
+void Device::destroyHandle()
+{
+    if(mLoadedEngine){
+        mLoadedEngine->deRegisterHandle(mDeviceHandle);
+        mDeviceHandle = {};
+    }
 }
 
 void Device::logDebug(const std::string &calling_class, const std::string &message)

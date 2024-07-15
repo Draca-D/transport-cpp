@@ -86,6 +86,9 @@ private:
     void logWarn(const std::string &calling_class, const std::string &message);
     void logError(const std::string &calling_class, const std::string &message);
     void logFatal(const std::string &calling_class, const std::string &message);
+
+    void requestRead(const DEVICE_HANDLE &handle);
+    void requestWrite(const DEVICE_HANDLE &handle);
 };
 }
 

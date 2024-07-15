@@ -234,6 +234,8 @@ void IODevice::readyWrite()
 
 void IODevice::readyRead()
 {
+    logDebug("IODevice\readyReady", "incoming data");
+
     IODATA data;
 
     auto read_resp = readIOData(data);
@@ -270,19 +272,10 @@ Device::ERROR IODevice::readIOData(IODATA &data)
         err.description = "read error";
     }
 
-    while(nbytes > 0){
-        data.reserve(data.capacity() + static_cast<size_t>(nbytes));
+    data.reserve(data.capacity() + static_cast<size_t>(nbytes));
 
-        for(int x = 0; x < nbytes; x++){
-            data.push_back(buffer[x]);
-        }
-
-        auto nbytes = read(handle, buffer, sizeof(buffer));
-
-        if(nbytes == -1){
-            err.code = errno;
-            err.description = "read error";
-        }
+    for(int x = 0; x < nbytes; x++){
+        data.push_back(buffer[x]);
     }
 
     return err;
