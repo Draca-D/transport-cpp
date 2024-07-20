@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <poll.h>
+#include <fcntl.h>
 
 namespace Context::Devices::IO {
 
@@ -189,6 +190,29 @@ IODevice::IODevice() :
 
 void IODevice::ioDataCallbackSet() {/*unused*/}
 
+void IODevice::registerNewHandle(DEVICE_HANDLE handle)
+{
+    Device::registerNewHandle(handle);
+
+    if(!handle){
+        return;
+    }
+
+    auto hndl = handle.value();
+
+    auto flags = fcntl(hndl, F_GETFL);
+
+    if(flags == -1){
+        logError("IODevice/registerNewHandle", "Unable to get handle flags: " + std::string(strerror(errno)));
+        return;
+    }
+
+    if(fcntl(hndl, F_SETFL, flags | O_NONBLOCK) == -1){
+        logError("IODevice/registerNewHandle", "could not set file flags: " + std::string(strerror(errno)));
+        return;
+    }
+}
+
 void IODevice::readyWrite()
 {
     if(mOutgoingQueue.empty() && mOutgoingSharedQueue.empty()){
@@ -196,14 +220,10 @@ void IODevice::readyWrite()
         return;
     }
 
-    auto opt_hndl = getDeviceHandle();
-
-    if(!opt_hndl){
+    if(!getDeviceHandle()){
         logError("IODevice/readyWrite", "Somehow got to readyWrite without a configured file descriptor");
         return;
     }
-
-    auto handle = opt_hndl.value();
 
     bool popOutgoing = true;
 
@@ -216,7 +236,7 @@ void IODevice::readyWrite()
         popOutgoing = false;
     }
 
-    auto ret = write(handle, next->data(), next->size());
+    auto ret = syncSend(next);
 
     if(popOutgoing){
         mOutgoingQueue.pop();
@@ -224,7 +244,7 @@ void IODevice::readyWrite()
         mOutgoingSharedQueue.pop();
     }
 
-    if(ret < 0){
+    if(ret == RETURN::NOK){
         logError("IODevice/readyWrite", "Unable to write to provided file descriptor. Error: " +
                  std::string(strerror(errno)));
     }
@@ -246,9 +266,7 @@ void IODevice::readyRead()
         return;
     }
 
-    if(mCallback){
-        mCallback(data);
-    }
+    notifyIOCallback(data);
 }
 
 void IODevice::readyError()
@@ -258,6 +276,8 @@ void IODevice::readyError()
 
 Device::ERROR IODevice::readIOData(IODATA &data)
 {
+    data.clear();
+
     ERROR err;
     err.code = ERROR_CODE::NO_ERROR;
 
@@ -272,13 +292,24 @@ Device::ERROR IODevice::readIOData(IODATA &data)
         err.description = "read error";
     }
 
-    data.reserve(data.capacity() + static_cast<size_t>(nbytes));
+    while(nbytes > 0){
+        data.reserve(data.capacity() + static_cast<size_t>(nbytes));
 
-    for(int x = 0; x < nbytes; x++){
-        data.push_back(buffer[x]);
+        for(int x = 0; x < nbytes; x++){
+            data.push_back(buffer[x]);
+        }
+
+        nbytes = read(handle, buffer, sizeof(buffer));
     }
 
     return err;
+}
+
+void Context::Devices::IO::IODevice::notifyIOCallback(const IODATA &data)
+{
+    if(mCallback){
+        mCallback(data);
+    }
 }
 
 bool IODevice::isValidForOutgoinAsync()
@@ -309,6 +340,41 @@ RETURN_CODE IODevice::syncSend(const IODATA *data)
     }
 
     auto handle = opt_hndl.value();
+
+    pollfd fd;
+
+    fd.events = POLLOUT;
+    fd.fd = handle;
+
+    auto nres = poll(&fd, 1, -1);
+
+    if(nres == -1){
+        setError(errno, "Device cannot be polled for pollout");
+        return RETURN::NOK;
+    }else if(nres == 0){
+        setError(ERROR_CODE::POLL_ERROR, "Poll returned 0 available devices for a forever timeout on sync send");
+        return RETURN::NOK;
+    }
+
+    if(fd.revents == POLLERR){
+        readyError();
+
+        setError(ERROR_CODE::POLL_ERROR, "Poll had an error");
+        return RETURN::NOK;
+
+    }else if(fd.revents == POLLHUP){
+        readyHangup();
+
+        setError(ERROR_CODE::POLL_ERROR, "Peer hung up");
+        return RETURN::NOK;
+
+    }else if(fd.revents == POLLRDHUP){
+        readyPeerDisconnect();
+
+        setError(ERROR_CODE::POLL_ERROR, "Peer disconnected");
+        return RETURN::NOK;
+    }
+
     auto ret = write(handle, data->data(), data->size());
 
     if(ret < 0){
@@ -316,9 +382,7 @@ RETURN_CODE IODevice::syncSend(const IODATA *data)
         return RETURN::NOK;
     }
 
-    if(getCurrentLoadedEngine()){
-        requestRead();
-    }
+    requestRead();
 
     return RETURN::OK;
 }

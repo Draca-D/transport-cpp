@@ -2,6 +2,7 @@
 #include <transport-cpp/engine.h>
 
 #include <poll.h>
+#include <unistd.h>
 
 namespace Context{
 Device::~Device()
@@ -104,6 +105,7 @@ void Device::setError(DEVICE_ERROR code, const ERROR_STRING &description)
 
 void Device::requestRead()
 {
+    logDebug("Device", "Request Read");
     if(mLoadedEngine){
         mLoadedEngine->requestRead(mDeviceHandle);
     }
@@ -111,6 +113,7 @@ void Device::requestRead()
 
 void Device::requestWrite()
 {
+    logDebug("Device", "Request Write");
     if(mLoadedEngine){
         mLoadedEngine->requestWrite(mDeviceHandle);
     }
@@ -118,9 +121,25 @@ void Device::requestWrite()
 
 void Device::destroyHandle()
 {
+    closeHandle();
+
     if(mLoadedEngine){
         mLoadedEngine->deRegisterHandle(mDeviceHandle);
         mDeviceHandle = {};
+    }
+}
+
+void Device::closeHandle()
+{
+    if(mDeviceHandle){
+        close(mDeviceHandle.value());
+    }
+}
+
+void Device::registerChildDevice(Device *device)
+{
+    if(mLoadedEngine){
+        mLoadedEngine->registerDevice(device);
     }
 }
 

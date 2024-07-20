@@ -104,6 +104,8 @@ bool Engine::awaitOnceUpto(int ms)
         return false;
     }
 
+
+
     static thread_local std::vector<DEVICE_HANDLE_> ready_read(256);
     static thread_local std::vector<DEVICE_HANDLE_> ready_write(256);
     static thread_local std::vector<DEVICE_HANDLE_> error(256);
@@ -122,6 +124,8 @@ bool Engine::awaitOnceUpto(int ms)
 //    ready_write.reserve(static_cast<size_t>(res));
 //    error.reserve(static_cast<size_t>(res));
 
+
+
     for(const auto &fd:mPollDevices){
         if(fd.revents == POLLIN){
             ready_read.push_back(fd.fd);
@@ -129,16 +133,16 @@ bool Engine::awaitOnceUpto(int ms)
         }else if(fd.revents == POLLOUT){
             ready_write.push_back(fd.fd);
             count++;
-        }else if(fd.revents == POLLERR){
+        }else if(fd.revents & POLLERR){
             error.push_back(fd.fd);
             count++;
-        }else if(fd.revents == POLLHUP){
+        }else if(fd.revents & POLLHUP){
             hangup.push_back(fd.fd);
             count++;
-        }else if(fd.revents == POLLNVAL){
+        }else if(fd.revents & POLLNVAL){
             invalid.push_back(fd.fd);
             count++;
-        }else if(fd.revents == POLLRDHUP){
+        }else if(fd.revents & POLLRDHUP){
             peer_disconnect.push_back(fd.fd);
             count++;
         }

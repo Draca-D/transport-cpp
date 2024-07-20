@@ -10,6 +10,12 @@ namespace Context::Devices::IO::Networking {
 using ADDR = std::string;
 using PORT = unsigned short;
 
+enum class IPVersion{
+    ANY,
+    IPv4,
+    IPv6
+};
+
 struct HostAddr {
     ADDR ip;
     PORT port;
@@ -18,6 +24,11 @@ struct HostAddr {
 struct NetworkMessage{
     Context::Devices::IO::IODevice::IODATA data;
     HostAddr peer;
+};
+
+struct ConnectedHost {
+    HostAddr    addr;
+    IPVersion   ip_hint;
 };
 
 class AddrInfo
@@ -37,16 +48,12 @@ public:
     addrinfo *next();
 };
 
-enum class IPVersion{
-    ANY,
-    IPv4,
-    IPv6
-};
-
 class TRANSPORT_CPP_EXPORT NetworkDevice :
         public IODevice
 {
-    using RX_CALLBACK = std::function<void(const NetworkMessage &message)>;
+    using RX_CALLBACK   = std::function<void(const NetworkMessage &message)>;
+    using SOCK_STYLE    = int;
+    using DEVICE_HANDLE = std::optional<DEVICE_HANDLE_>;
 
 private:
     RX_CALLBACK mCallback;
@@ -60,6 +67,10 @@ protected:
     ERROR receiveMessage(NetworkMessage &message);
     void notifyCallback(const NetworkMessage &message);
 
+    RETURN_CODE createAndConnectSocket(const HostAddr &host, const IPVersion &ip_hint, const SOCK_STYLE &sock_style);
+    RETURN_CODE createAndBindSocket(const HostAddr &host, const IPVersion &ip_hint, const SOCK_STYLE &sock_style);
+
+    RETURN_CODE sockToReuse(DEVICE_HANDLE handle);
 private:
     void readyRead() override;
 };

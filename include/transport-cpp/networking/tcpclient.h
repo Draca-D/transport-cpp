@@ -11,16 +11,19 @@ class TRANSPORT_CPP_EXPORT Client :
     using DISCONNECT_NOTIFY = std::function<void(Client*)>;
 
 private:
-    HostAddr            mHost;
+    ConnectedHost       mHost;
     DISCONNECT_NOTIFY   mToNotify;
     bool                mIsConnected = false;
 
 public:
     Client();
 
-    HostAddr getSetHostAddr();
+    ConnectedHost getSetHostAddr();
+    void disconnect();
 
     RETURN_CODE connectToHost(const HostAddr &host, IPVersion ip_hint = IPVersion::ANY);
+    RETURN_CODE connectToHost(const ConnectedHost &host);
+
     void setDisconnectNotification(const DISCONNECT_NOTIFY handler);
 
     SYNC_RX_DATA syncRequestResponse(const IODATA &data);

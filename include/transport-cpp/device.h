@@ -41,6 +41,13 @@ public:
         ERROR_STRING    description;
     };
 
+    template<typename TP>
+    struct Result
+    {
+        RETURN_CODE code;
+        std::optional<TP> result;
+    };
+
 private:
     DEVICE_HANDLE   mDeviceHandle;
     ENGINE_PTR      mLoadedEngine   = nullptr;
@@ -49,15 +56,6 @@ private:
 private:
     void loadEngine(ENGINE_PTR engine);
     void deloadEngine();
-
-    //Device Ready
-    virtual void readyRead();
-    virtual void readyWrite();
-    virtual void readyError();
-    virtual void readyHangup();
-    virtual void readyInvalidRequest();
-    virtual void readyPeerDisconnect();
-
 
 public:
     virtual ~Device();
@@ -69,18 +67,29 @@ public:
 protected:
     Device();
 
-    void registerNewHandle(DEVICE_HANDLE handle);
+    virtual void registerNewHandle(DEVICE_HANDLE handle);
     void setError(DEVICE_ERROR code, const ERROR_STRING &description);
 
     void requestRead();
     void requestWrite();
     void destroyHandle();
+    void closeHandle();
+
+    void registerChildDevice(Device *device);
 
     void logDebug(const std::string &calling_class, const std::string &message);
     void logInfo(const std::string &calling_class, const std::string &message);
     void logWarn(const std::string &calling_class, const std::string &message);
     void logError(const std::string &calling_class, const std::string &message);
     void logFatal(const std::string &calling_class, const std::string &message);
+
+    //Device Ready
+    virtual void readyRead();
+    virtual void readyWrite();
+    virtual void readyError();
+    virtual void readyHangup();
+    virtual void readyInvalidRequest();
+    virtual void readyPeerDisconnect();
 };
 }
 

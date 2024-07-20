@@ -18,6 +18,7 @@ public:
     using IODATA            = std::vector<BYTE>;
 
 private:
+    using DEVICE_HANDLE     = std::optional<DEVICE_HANDLE_>;
     using IODATA_CALLBACK   = std::function<void(const IODATA &)>;
     using ASYNC_QUEUE       = std::queue<IODATA>;
     using ASYNC_SHR_QUEUE   = std::queue<std::shared_ptr<IODATA>>;
@@ -41,6 +42,7 @@ public:
 
     virtual RETURN_CODE asyncSend(const IODATA &data);
     virtual RETURN_CODE asyncSend(const std::shared_ptr<IODATA> data);
+
     virtual RETURN_CODE syncSend(const IODATA &data);
     virtual RETURN_CODE syncSend(const std::shared_ptr<IODATA> data);
 
@@ -52,12 +54,16 @@ protected:
 
     ERROR readIOData(IODATA &data);
 
-private:
-    virtual void ioDataCallbackSet();
+    void notifyIOCallback(const IODATA &data);
+
+    void registerNewHandle(DEVICE_HANDLE handle) override;
 
     void readyWrite() override;
     void readyRead() override;
     void readyError() override;
+
+private:
+    virtual void ioDataCallbackSet();
 
     bool isValidForOutgoinAsync();
 

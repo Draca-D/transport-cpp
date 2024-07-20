@@ -17,6 +17,14 @@ set(HEADERS
     ${HEADER_DIR}/io/serial.h
     ${HEADER_DIR}/networking/networkdevice.h
     ${HEADER_DIR}/networking/tcpclient.h
+    ${HEADER_DIR}/networking/tcpserver.h
+
+    ${HEADER_DIR}/networking/udpsender.h
+    ${HEADER_DIR}/networking/udpreceiver.h
+    ${HEADER_DIR}/networking/udpclient.h
+    ${HEADER_DIR}/networking/udpserver.h
+    ${HEADER_DIR}/networking/udpbroadcaster.h
+    ${HEADER_DIR}/networking/udpmulticaster.h
 )
 
 add_library(transport-cpp 
@@ -30,7 +38,13 @@ add_library(transport-cpp
     src/networkdevice.cpp
     src/serial.cpp
     src/tcpclient.cpp
-
+    src/tcpserver.cpp
+    src/udpsender.cpp
+    src/udpreceiver.cpp
+    src/udpclient.cpp
+    src/udpserver.cpp
+    src/udpbroadcaster.cpp
+    src/udpmulticaster.cpp
 )
 
 # set_target_properties(transport-cpp PROPERTIES PUBLIC_HEADER "include/transport-cpp.h")

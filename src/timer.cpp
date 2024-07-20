@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cstring>
-#include <math.h>
+#include <cmath>
 
 timespec nsToTimespec(std::chrono::nanoseconds ns)
 {
@@ -53,7 +53,7 @@ Timer::~Timer()
 RETURN_CODE Context::Timer::stop() noexcept
 {
     if(!mIsRunning){
-        return RETURN::OK; //its fine to run the rest of the code even
+        return RETURN::PASSABLE; //its fine to run the rest of the code even
         // if this is already stopped, just feels cleaner this way
     }
 

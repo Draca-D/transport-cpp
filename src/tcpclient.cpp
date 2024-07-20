@@ -20,79 +20,34 @@ Client::Client() :
 
 }
 
-HostAddr Client::getSetHostAddr()
+ConnectedHost Client::getSetHostAddr()
 {
     return mHost;
 }
 
+void Client::disconnect()
+{
+    destroyHandle();
+    mIsConnected = false;
+}
+
 RETURN_CODE Client::connectToHost(const HostAddr &host, IPVersion ip_hint)
 {
-    AddrInfo info;
+    disconnect();
 
-    struct addrinfo hints;
-
-    memset(&hints, 0, sizeof(hints));
-
-    if(ip_hint == IPVersion::IPv4){
-        hints.ai_family = AF_INET;
-    }else if(ip_hint == IPVersion::IPv6){
-        hints.ai_family = AF_INET6;
-    }else{
-        hints.ai_family = AF_UNSPEC; // ipv4 or ipv6
-    }
-
-    hints.ai_socktype = SOCK_STREAM; //SOCK_DGRAM for UDP | SOCK_STREAM for TCP
-    hints.ai_flags = AI_PASSIVE; // fill in ip for me
-
-    auto status = info.loadHints(hints, host);
-
-    if(status != 0){
-        setError(ERROR_CODE::GENERAL_ERROR, std::string("unable to get address information: ")
-                 + gai_strerror(status));
-
-        return RETURN::NOK;
-    }
-
-    auto next_info = info.next();
-
-    if(next_info == nullptr){
-        setError(ERROR_CODE::GENERAL_ERROR, "No addresses return in getaddrinfo");
-        return RETURN::NOK;
-    }
-
-    while(next_info != nullptr){
-        auto sock = socket(next_info->ai_family,
-                           next_info->ai_socktype,
-                           next_info->ai_protocol);
-
-        if(sock == -1){
-            setError(errno, "Unable to open socket");
-            return RETURN::NOK;
-        }
-
-        auto addr = reinterpret_cast<sockaddr *>(malloc(next_info->ai_addrlen));
-        memcpy(addr, next_info->ai_addr, next_info->ai_addrlen);
-        auto res = connect(sock, addr, next_info->ai_addrlen);
-
-        if(res != 0){
-            setError(errno, "Unable to connect socket");
-            free(addr);
-
-            return RETURN::NOK;
-        }
-
-        free(addr);
-
-        registerNewHandle(sock);
-
+    if(createAndConnectSocket(host, ip_hint, SOCK_STREAM) == RETURN::OK){
         mIsConnected    = true;
-        mHost           = host;
+        mHost           = {host, ip_hint};
 
         return RETURN::OK;
     }
 
-    setError(ERROR_CODE::GENERAL_ERROR, "Unkown error");
     return RETURN::NOK;
+}
+
+RETURN_CODE Client::connectToHost(const ConnectedHost &host)
+{
+    return connectToHost(host.addr, host.ip_hint);
 }
 
 void Client::setDisconnectNotification(const DISCONNECT_NOTIFY handler)
@@ -143,7 +98,7 @@ void Client::readyRead()
         return;
     }
 
-    message.peer = mHost;
+    message.peer = mHost.addr;
 
     notifyCallback(message);
 }
@@ -170,7 +125,7 @@ void Client::notifyOfDisconnect()
 void Client::peerDisconnected()
 {
     mIsConnected = false;
-    close(getDeviceHandle().value());
+
     destroyHandle();
     notifyOfDisconnect();
 }
