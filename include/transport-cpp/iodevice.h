@@ -16,35 +16,33 @@ class TRANSPORT_CPP_EXPORT IODevice :
 public:
     using BYTE              = int8_t;
     using IODATA            = std::vector<BYTE>;
+    using IODATA_CHOICE     = std::variant<std::shared_ptr<IODATA>, IODATA, std::unique_ptr<IODATA>>;
 
 private:
     using DEVICE_HANDLE     = std::optional<DEVICE_HANDLE_>;
     using IODATA_CALLBACK   = std::function<void(const IODATA &)>;
-    using ASYNC_QUEUE       = std::queue<IODATA>;
-    using ASYNC_SHR_QUEUE   = std::queue<std::shared_ptr<IODATA>>;
+    using ASYNC_QUEUE       = std::queue<IODATA_CHOICE>;
 
 private:
     IODATA_CALLBACK mCallback;
     ASYNC_QUEUE     mOutgoingQueue;
-    ASYNC_SHR_QUEUE mOutgoingSharedQueue;
 
 public:
     virtual ~IODevice() override;
 
     struct ReceivedData{
-        RETURN_CODE             code;
+        RETURN_CODE             code{};
         std::optional<IODATA>   data;
     };
 
     using SYNC_RX_DATA = ReceivedData;
 
-    void setIODataCallback(IODATA_CALLBACK callback);
+    void setIODataCallback(const IODATA_CALLBACK &callback);
 
-    virtual RETURN_CODE asyncSend(const IODATA &data);
-    virtual RETURN_CODE asyncSend(const std::shared_ptr<IODATA> data);
-
-    virtual RETURN_CODE syncSend(const IODATA &data);
-    virtual RETURN_CODE syncSend(const std::shared_ptr<IODATA> data);
+    [[nodiscard]] virtual RETURN_CODE asyncSend(const IODATA &data);
+    [[nodiscard]] virtual RETURN_CODE asyncSend(const std::shared_ptr<IODATA> &data);
+    [[nodiscard]] virtual RETURN_CODE asyncSend(std::unique_ptr<IODATA> data); //message will be moved, original value will be invalidated
+    [[nodiscard]] virtual RETURN_CODE syncSend(const IODATA_CHOICE &data);
 
     virtual SYNC_RX_DATA syncReceive(const std::chrono::milliseconds &timeout);
     virtual SYNC_RX_DATA syncReceive();
@@ -52,9 +50,9 @@ public:
 protected:
     IODevice();
 
-    ERROR readIOData(IODATA &data);
+    ERROR readIOData(IODATA &data) const noexcept;
 
-    void notifyIOCallback(const IODATA &data);
+    void notifyIOCallback(const IODATA &data) const;
 
     void registerNewHandle(DEVICE_HANDLE handle) override;
 
@@ -62,12 +60,14 @@ protected:
     void readyRead() override;
     void readyError() override;
 
+    bool isValidForOutgoinAsync();
+
+    [[nodiscard]] static bool ioDataChoiceValid(const IODATA_CHOICE &data) noexcept;
+
 private:
     virtual void ioDataCallbackSet();
 
-    bool isValidForOutgoinAsync();
-
-    RETURN_CODE syncSend(const IODATA *data);
+    RETURN_CODE performSyncSend(const IODATA_CHOICE &data);
 };
 
 }

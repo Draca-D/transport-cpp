@@ -37,7 +37,7 @@ private:
     void notifyServerHandler(const NetworkMessage &request);
 };
 
-class TRANSPORT_CPP_EXPORT Acceptor :
+class TRANSPORT_CPP_EXPORT Acceptor final :
         public NetworkDevice
 {
     using NEW_PEER_HANDLER  = std::function<void(std::unique_ptr<Peer> new_peer)>;
@@ -59,7 +59,7 @@ public:
     void disconnect();
 
     void setNewPeerHandler(NEW_PEER_HANDLER handler) noexcept;
-    bool isBound() const noexcept;
+    [[nodiscard]] bool isBound() const noexcept;
 
     RETURN_CODE bind(PORT port, IPVersion ip_hint = IPVersion::ANY) noexcept;
     RETURN_CODE bind(const HostAddr &host, IPVersion ip_hint = IPVersion::ANY) noexcept;
@@ -68,12 +68,11 @@ public:
 
 private:
     void listen();
-    RETURN_CODE sockToReuse(DEVICE_HANDLE handle);
 
     void readyRead() override;
     void readyHangup() override;
 
-    void notifyNewPeer(std::unique_ptr<Peer> new_peer);
+    void notifyNewPeer(std::unique_ptr<Peer> new_peer) const;
 };
 
 }

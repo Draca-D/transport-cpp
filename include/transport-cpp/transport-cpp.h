@@ -6,6 +6,8 @@
 #else
 #define TRANSPORT_CPP_EXPORT
 #endif
+#include <memory>
+#include <string>
 
 using RETURN_CODE       = int;
 using DEVICE_HANDLE_    = int;
@@ -18,6 +20,26 @@ static constexpr RETURN_CODE PASSABLE   = 2;
 }
 
 namespace Transport {
+    class Logger {
+    public:
+        enum class LogLevel : char {DEBUG = 1, INFO = 2, WARN = 3, ERROR = 4, FATAL = 5 };
+
+        static std::shared_ptr<Logger> DefaultLogger;
+
+    private:
+        LogLevel mMinLogLevel = LogLevel::DEBUG;
+
+    public:
+        void setMinimumLogLevel(const LogLevel &min_level);
+
+        void logDebug(const std::string &calling_class, const std::string &message);
+        void logInfo(const std::string &calling_class, const std::string &message);
+        void logWarn(const std::string &calling_class, const std::string &message);
+        void logError(const std::string &calling_class, const std::string &message);
+        void logFatal(const std::string &calling_class, const std::string &message);
+
+        void log(const LogLevel &level, const std::string &calling_class, const std::string &message);
+    };
 
 namespace Information{
 

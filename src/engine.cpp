@@ -45,6 +45,10 @@ RETURN_CODE Engine::deRegisterDevice(Device &device) noexcept
     return deRegisterDevice(&device);
 }
 
+void Engine::setLogger(const LOGGER &logger) noexcept {
+    mLogger = logger;
+}
+
 Engine::ERROR Engine::getLastError() const noexcept
 {
     return mLastError;
@@ -311,29 +315,39 @@ void Engine::setError(ERROR_CODE code, const ERROR_STRING &description)
     mLastError.description  = description;
 }
 
-void Engine::logDebug(const std::string &calling_class, const std::string &message)
+void Engine::logDebug(const std::string &calling_class, const std::string &message) const
 {
-    printf("[DEBUG][%s]: %s\n", calling_class.c_str(), message.c_str());
+    if(mLogger) {
+        mLogger->logDebug(calling_class, message);
+    }
 }
 
-void Engine::logInfo(const std::string &calling_class, const std::string &message)
+void Engine::logInfo(const std::string &calling_class, const std::string &message) const
 {
-    printf("[INFO][%s]: %s\n", calling_class.c_str(), message.c_str());
+    if(mLogger) {
+        mLogger->logInfo(calling_class, message);
+    }
 }
 
-void Engine::logWarn(const std::string &calling_class, const std::string &message)
+void Engine::logWarn(const std::string &calling_class, const std::string &message) const
 {
-    printf("[WARN][%s]: %s\n", calling_class.c_str(), message.c_str());
+    if(mLogger) {
+        mLogger->logWarn(calling_class, message);
+    }
 }
 
-void Engine::logError(const std::string &calling_class, const std::string &message)
+void Engine::logError(const std::string &calling_class, const std::string &message) const
 {
-    printf("[ERROR][%s]: %s\n", calling_class.c_str(), message.c_str());
+    if(mLogger) {
+        mLogger->logError(calling_class, message);
+    }
 }
 
-void Engine::logFatal(const std::string &calling_class, const std::string &message)
+void Engine::logFatal(const std::string &calling_class, const std::string &message) const
 {
-    printf("[FATAL][%s]: %s\n", calling_class.c_str(), message.c_str());
+    if(mLogger) {
+        mLogger->logFatal(calling_class, message);
+    }
 }
 
 void Engine::requestRead(const DEVICE_HANDLE &handle)

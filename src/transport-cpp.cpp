@@ -153,3 +153,68 @@ Subsystem subsystem()
 
 }
 
+void Transport::Logger::setMinimumLogLevel(const LogLevel &min_level) {
+    mMinLogLevel = min_level;
+}
+
+void Transport::Logger::logDebug(const std::string &calling_class, const std::string &message) {
+    if(static_cast<char>(mMinLogLevel) > static_cast<double>(LogLevel::DEBUG)) {
+        return;
+    }
+
+    printf("[DEBUG][%s]: %s\n", calling_class.c_str(), message.c_str());
+}
+
+void Transport::Logger::logInfo(const std::string &calling_class, const std::string &message) {
+    if(static_cast<char>(mMinLogLevel) > static_cast<double>(LogLevel::INFO)) {
+        return;
+    }
+
+    printf("[INFO][%s]: %s\n", calling_class.c_str(), message.c_str());
+}
+
+void Transport::Logger::logWarn(const std::string &calling_class, const std::string &message) {
+    if(static_cast<char>(mMinLogLevel) > static_cast<double>(LogLevel::WARN)) {
+        return;
+    }
+
+    printf("[WARN][%s]: %s\n", calling_class.c_str(), message.c_str());
+}
+
+void Transport::Logger::logError(const std::string &calling_class, const std::string &message) {
+    if(static_cast<char>(mMinLogLevel) > static_cast<double>(LogLevel::ERROR)) {
+        return;
+    }
+
+    printf("[ERROR][%s]: %s\n", calling_class.c_str(), message.c_str());
+}
+
+void Transport::Logger::logFatal(const std::string &calling_class, const std::string &message) {
+    if(static_cast<char>(mMinLogLevel) > static_cast<double>(LogLevel::FATAL)) {
+        return;
+    }
+
+    printf("[FATAL][%s]: %s\n", calling_class.c_str(), message.c_str());
+}
+
+void Transport::Logger::log(const LogLevel &level, const std::string &calling_class, const std::string &message) {
+    switch (level) {
+        case LogLevel::DEBUG:
+            logDebug(calling_class, message);
+        break;
+        case LogLevel::INFO:
+            logInfo(calling_class, message);
+        break;
+        case LogLevel::WARN:
+            logWarn(calling_class, message);
+        break;
+        case LogLevel::ERROR:
+            logError(calling_class, message);
+        break;
+        case LogLevel::FATAL:
+            logFatal(calling_class, message);
+        break;
+    }
+}
+
+std::shared_ptr<Transport::Logger>Transport::Logger::DefaultLogger = std::make_shared<Transport::Logger>();

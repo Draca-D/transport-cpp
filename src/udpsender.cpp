@@ -14,7 +14,7 @@
 
 namespace Context::Devices::IO::Networking::UDP {
 Sender::Sender() :
-    NetworkDevice()
+    NetworkDevice(), mHost({})
 {
 
 }

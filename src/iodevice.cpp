@@ -20,7 +20,7 @@ IODevice::~IODevice()
     close(handle);
 }
 
-void IODevice::setIODataCallback(IODATA_CALLBACK callback)
+void IODevice::setIODataCallback(const IODATA_CALLBACK &callback)
 {
     logDebug("IODevice", "Callback updated");
 
@@ -29,50 +29,67 @@ void IODevice::setIODataCallback(IODATA_CALLBACK callback)
     ioDataCallbackSet();
 }
 
+RETURN_CODE IODevice::asyncSend(const std::shared_ptr<IODATA> &data) {
+    if(!isValidForOutgoinAsync()){
+        return RETURN::NOK;
+    }
+
+    if(!ioDataChoiceValid(data)) {
+        setError(ERROR_CODE::INVALID_LOGIC, "Provided data has not been initialised");
+        return RETURN::NOK;
+    }
+
+    mOutgoingQueue.emplace(data);
+
+    requestWrite();
+
+    return RETURN::OK;
+}
+
+RETURN_CODE IODevice::asyncSend(std::unique_ptr<IODATA> data) {
+    if(!isValidForOutgoinAsync()){
+        return RETURN::NOK;
+    }
+
+    if(!data) {
+        setError(ERROR_CODE::INVALID_LOGIC, "Provided data has not been initialised");
+        return RETURN::NOK;
+    }
+
+    mOutgoingQueue.emplace(std::move(data));
+
+    requestWrite();
+
+    return RETURN::OK;
+}
+
 RETURN_CODE IODevice::asyncSend(const IODATA &data)
 {
     if(!isValidForOutgoinAsync()){
         return RETURN::NOK;
     }
 
-    mOutgoingQueue.push(data);
+    if(!ioDataChoiceValid(data)) {
+        setError(ERROR_CODE::INVALID_LOGIC, "Provided data has not been initialised");
+        return RETURN::NOK;
+    }
+
+    mOutgoingQueue.emplace(data);
 
     requestWrite();
 
     return RETURN::OK;
 }
 
-RETURN_CODE IODevice::asyncSend(const std::shared_ptr<IODATA> data)
+
+RETURN_CODE IODevice::syncSend(const IODATA_CHOICE &data)
 {
-    if(!data){
-        setError(ERROR_CODE::INVALID_ARGUMENT, "Shared ptr provided to asyncSend has not been initialised");
+    if(!ioDataChoiceValid(data)) {
+        setError(ERROR_CODE::INVALID_LOGIC, "Provided data has not been initialised");
         return RETURN::NOK;
     }
 
-    if(!isValidForOutgoinAsync()){
-        return RETURN::NOK;
-    }
-
-    mOutgoingSharedQueue.push(data);
-
-    requestWrite();
-
-    return RETURN::OK;
-}
-
-RETURN_CODE IODevice::syncSend(const IODATA &data)
-{
-    return syncSend(&data);
-}
-
-RETURN_CODE IODevice::syncSend(const std::shared_ptr<IODATA> data)
-{
-    if(!data){
-        setError(ERROR_CODE::INVALID_ARGUMENT, "Shared ptr provided to syncSend has not been initialised");
-        return RETURN::NOK;
-    }
-
-    return syncSend(data.get());
+    return performSyncSend(data);
 }
 
 IODevice::SYNC_RX_DATA IODevice::syncReceive(const std::chrono::milliseconds &timeout)
@@ -215,7 +232,7 @@ void IODevice::registerNewHandle(DEVICE_HANDLE handle)
 
 void IODevice::readyWrite()
 {
-    if(mOutgoingQueue.empty() && mOutgoingSharedQueue.empty()){
+    if(mOutgoingQueue.empty()){
         requestRead();
         return;
     }
@@ -225,24 +242,9 @@ void IODevice::readyWrite()
         return;
     }
 
-    bool popOutgoing = true;
+    auto ret = performSyncSend(mOutgoingQueue.front());
 
-    IODATA *next;
-
-    if(!mOutgoingQueue.empty()){
-        next = &mOutgoingQueue.front();
-    }else{
-        next = mOutgoingSharedQueue.front().get();
-        popOutgoing = false;
-    }
-
-    auto ret = syncSend(next);
-
-    if(popOutgoing){
-        mOutgoingQueue.pop();
-    }else{
-        mOutgoingSharedQueue.pop();
-    }
+    mOutgoingQueue.pop();
 
     if(ret == RETURN::NOK){
         logError("IODevice/readyWrite", "Unable to write to provided file descriptor. Error: " +
@@ -274,8 +276,7 @@ void IODevice::readyError()
     logError("IODevice", "readyError, unknown error");
 }
 
-Device::ERROR IODevice::readIOData(IODATA &data)
-{
+Device::ERROR IODevice::readIOData(IODATA &data) const noexcept {
     data.clear();
 
     ERROR err;
@@ -305,8 +306,7 @@ Device::ERROR IODevice::readIOData(IODATA &data)
     return err;
 }
 
-void Context::Devices::IO::IODevice::notifyIOCallback(const IODATA &data)
-{
+void IODevice::notifyIOCallback(const IODATA &data) const {
     if(mCallback){
         mCallback(data);
     }
@@ -330,7 +330,17 @@ bool IODevice::isValidForOutgoinAsync()
     return true;
 }
 
-RETURN_CODE IODevice::syncSend(const IODATA *data)
+bool IODevice::ioDataChoiceValid(const IODATA_CHOICE &data) noexcept {
+    if(std::holds_alternative<std::unique_ptr<IODATA>>(data) && !std::get<std::unique_ptr<IODATA>>(data)) {
+        return false;
+    }else if(std::holds_alternative<std::shared_ptr<IODATA>>(data) && !std::get<std::shared_ptr<IODATA>>(data)) {
+        return false;
+    }
+
+    return true;
+}
+
+RETURN_CODE IODevice::performSyncSend(const IODATA_CHOICE &data)
 {
     auto opt_hndl = getDeviceHandle();
 
@@ -375,9 +385,17 @@ RETURN_CODE IODevice::syncSend(const IODATA *data)
         return RETURN::NOK;
     }
 
-    auto ret = write(handle, data->data(), data->size());
+    const IODATA *data_ptr;
 
-    if(ret < 0){
+    if(std::holds_alternative<IODATA>(data)) {
+        data_ptr = &std::get<IODATA>(data);
+    }else if(std::holds_alternative<std::shared_ptr<IODATA>>(data)) {
+        data_ptr = std::get<std::shared_ptr<IODATA>>(data).get();
+    }else {
+        data_ptr = std::get<std::unique_ptr<IODATA>>(data).get();
+    }
+
+    if(write(handle, data_ptr->data(), data_ptr->size()) < 0){
         setError(errno, "Unable to write to provided file descriptor");
         return RETURN::NOK;
     }

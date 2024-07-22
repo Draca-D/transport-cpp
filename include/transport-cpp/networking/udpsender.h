@@ -5,7 +5,7 @@
 
 namespace Context::Devices::IO::Networking::UDP {
 
-class Sender :
+class TRANSPORT_CPP_EXPORT Sender final :
         public NetworkDevice
 {
 private:
@@ -15,9 +15,8 @@ public:
     Sender();
 
     void disconnect() noexcept;
-    bool isConnected() const noexcept;
-
-    ConnectedHost getSetHostAddr() const noexcept;
+    [[nodiscard]] bool isConnected() const noexcept;
+    [[nodiscard]] ConnectedHost getSetHostAddr() const noexcept;
 
     RETURN_CODE connectToHost(const HostAddr &host, IPVersion ip_hint = IPVersion::ANY);
 

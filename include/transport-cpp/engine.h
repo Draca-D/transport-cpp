@@ -24,6 +24,7 @@ class TRANSPORT_CPP_EXPORT Engine
     using POLL_MAP      = std::map<DEVICE_HANDLE_, Device*>;
     using ERROR_STRING  = std::string;
     using DEVICE_LIST   = std::vector<Device*>;
+    using LOGGER        = std::shared_ptr<Transport::Logger>;
 
 public:
     enum class ERROR_CODE{
@@ -40,10 +41,10 @@ public:
 
 private:
     ERROR       mLastError = {ERROR_CODE::NO_ERROR, ""};
-
     POLL_LIST   mPollDevices;
     POLL_MAP    mDeviceMapping;
     DEVICE_LIST mDeviceList;
+    LOGGER      mLogger = Transport::Logger::DefaultLogger;
 
 public:
     ~Engine();
@@ -55,8 +56,9 @@ public:
     RETURN_CODE deRegisterDevice(std::shared_ptr<Context::Device> device) noexcept;
     RETURN_CODE deRegisterDevice(Context::Device &device) noexcept;
 
-    ERROR getLastError() const noexcept;
+    void setLogger(const LOGGER &logger) noexcept;
 
+    [[nodiscard]] ERROR getLastError() const noexcept;
 
     //Awaiters
     void awaitOnce(const std::optional<std::chrono::milliseconds> &optional_duration = {});
@@ -81,11 +83,11 @@ private:
     bool awaitOnceUpto(int ms);
 
     //loggers
-    void logDebug(const std::string &calling_class, const std::string &message);
-    void logInfo(const std::string &calling_class, const std::string &message);
-    void logWarn(const std::string &calling_class, const std::string &message);
-    void logError(const std::string &calling_class, const std::string &message);
-    void logFatal(const std::string &calling_class, const std::string &message);
+    void logDebug(const std::string &calling_class, const std::string &message) const;
+    void logInfo(const std::string &calling_class, const std::string &message) const;
+    void logWarn(const std::string &calling_class, const std::string &message) const;
+    void logError(const std::string &calling_class, const std::string &message) const;
+    void logFatal(const std::string &calling_class, const std::string &message) const;
 
     void requestRead(const DEVICE_HANDLE &handle);
     void requestWrite(const DEVICE_HANDLE &handle);

@@ -5,7 +5,7 @@
 
 namespace Context::Devices::IO::Networking::TCP {
 
-class TRANSPORT_CPP_EXPORT Client :
+class TRANSPORT_CPP_EXPORT Client final :
         public NetworkDevice
 {
     using DISCONNECT_NOTIFY = std::function<void(Client*)>;

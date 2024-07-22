@@ -1,6 +1,8 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
+#include <memory>
+
 #include "transport-cpp.h"
 
 #include <optional>
@@ -22,6 +24,7 @@ class TRANSPORT_CPP_EXPORT Device
     using ENGINE_PTR    = Engine*;
     using POLL_PTR      = std::vector<POLL_STRUCT>::iterator;
     using ERROR_STRING  = std::string;
+    using LOGGER        = std::shared_ptr<Transport::Logger>;
 
 public:
     enum class ERROR_CODE{
@@ -52,6 +55,7 @@ private:
     DEVICE_HANDLE   mDeviceHandle;
     ENGINE_PTR      mLoadedEngine   = nullptr;
     ERROR           mLastError      = {ERROR_CODE::NO_ERROR, ""};
+    LOGGER          mLogger         = Transport::Logger::DefaultLogger;
 
 private:
     void loadEngine(ENGINE_PTR engine);
@@ -60,9 +64,11 @@ private:
 public:
     virtual ~Device();
 
-    ENGINE_PTR getCurrentLoadedEngine() const noexcept;
-    DEVICE_HANDLE getDeviceHandle() const noexcept;
-    ERROR getLastError() const noexcept;
+    [[nodiscard]] ENGINE_PTR getCurrentLoadedEngine() const noexcept;
+    [[nodiscard]] DEVICE_HANDLE getDeviceHandle() const noexcept;
+    [[nodiscard]] ERROR getLastError() const noexcept;
+
+    void setLogger(const LOGGER &logger) noexcept;
 
 protected:
     Device();
@@ -77,11 +83,11 @@ protected:
 
     void registerChildDevice(Device *device);
 
-    void logDebug(const std::string &calling_class, const std::string &message);
-    void logInfo(const std::string &calling_class, const std::string &message);
-    void logWarn(const std::string &calling_class, const std::string &message);
-    void logError(const std::string &calling_class, const std::string &message);
-    void logFatal(const std::string &calling_class, const std::string &message);
+    void logDebug(const std::string &calling_class, const std::string &message) const;
+    void logInfo(const std::string &calling_class, const std::string &message) const;
+    void logWarn(const std::string &calling_class, const std::string &message) const;
+    void logError(const std::string &calling_class, const std::string &message) const;
+    void logFatal(const std::string &calling_class, const std::string &message) const;
 
     //Device Ready
     virtual void readyRead();

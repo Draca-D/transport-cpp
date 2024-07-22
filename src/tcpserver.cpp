@@ -15,7 +15,7 @@
 namespace Context::Devices::IO::Networking::TCP::Server {
 
 Acceptor::Acceptor() noexcept :
-    NetworkDevice()
+    NetworkDevice(), mAddr({})
 {
 
 }
@@ -40,8 +40,8 @@ RETURN_CODE Acceptor::bind(PORT port, IPVersion ip_hint) noexcept
 {
     HostAddr addr;
 
-    addr.port       = port;
-    IPVersion hint  = IPVersion::IPv6;
+    addr.port = port;
+    auto hint = IPVersion::IPv6;
 
     if(ip_hint == IPVersion::IPv4){
         addr.ip     = "0.0.0.0";
@@ -143,7 +143,7 @@ void Acceptor::readyHangup()
     logError("TCPAcceptor", "Device has hungup. Unsure how this can happen in an acceptor");
 }
 
-void Acceptor::notifyNewPeer(std::unique_ptr<Peer> new_peer)
+void Acceptor::notifyNewPeer(std::unique_ptr<Peer> new_peer) const
 {
     if(mHandleNewPeer){
         mHandleNewPeer(std::move(new_peer));

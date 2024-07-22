@@ -5,7 +5,7 @@
 
 namespace Context::Devices::IO::Networking::UDP {
 
-class Broadcaster :
+class TRANSPORT_CPP_EXPORT Broadcaster final:
         public NetworkDevice
 {
 public:

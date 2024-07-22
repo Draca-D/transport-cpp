@@ -5,7 +5,7 @@
 
 namespace Context::Devices::IO::Networking::UDP {
 
-class Client :
+class TRANSPORT_CPP_EXPORT Client final:
         public NetworkDevice
 {
 public:

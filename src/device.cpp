@@ -38,7 +38,6 @@ void Context::Device::deloadEngine()
 
 }
 
-
 void Device::readyRead()
 {
     logDebug("Device", "Device is ready to perform a read, but functionality has not been implemented by child");
@@ -79,10 +78,11 @@ Device::ERROR Device::getLastError() const noexcept
     return mLastError;
 }
 
-Device::Device()
-{
-
+void Device::setLogger(const LOGGER &logger) noexcept {
+    mLogger = logger;
 }
+
+Device::Device() = default;
 
 void Device::registerNewHandle(DEVICE_HANDLE handle)
 {
@@ -143,28 +143,38 @@ void Device::registerChildDevice(Device *device)
     }
 }
 
-void Device::logDebug(const std::string &calling_class, const std::string &message)
+void Device::logDebug(const std::string &calling_class, const std::string &message) const
 {
-    printf("[DEBUG][%s]: %s\n", calling_class.c_str(), message.c_str());
+    if(mLogger) {
+        mLogger->logDebug(calling_class, message);
+    }
 }
 
-void Device::logInfo(const std::string &calling_class, const std::string &message)
+void Device::logInfo(const std::string &calling_class, const std::string &message) const
 {
-    printf("[INFO][%s]: %s\n", calling_class.c_str(), message.c_str());
+    if(mLogger) {
+        mLogger->logInfo(calling_class, message);
+    }
 }
 
-void Device::logWarn(const std::string &calling_class, const std::string &message)
+void Device::logWarn(const std::string &calling_class, const std::string &message) const
 {
-    printf("[WARN][%s]: %s\n", calling_class.c_str(), message.c_str());
+    if(mLogger) {
+        mLogger->logWarn(calling_class, message);
+    }
 }
 
-void Device::logError(const std::string &calling_class, const std::string &message)
+void Device::logError(const std::string &calling_class, const std::string &message) const
 {
-    printf("[ERROR][%s]: %s\n", calling_class.c_str(), message.c_str());
+    if(mLogger) {
+        mLogger->logError(calling_class, message);
+    }
 }
 
-void Device::logFatal(const std::string &calling_class, const std::string &message)
+void Device::logFatal(const std::string &calling_class, const std::string &message) const
 {
-    printf("[FATAL][%s]: %s\n", calling_class.c_str(), message.c_str());
+    if(mLogger) {
+        mLogger->logFatal(calling_class, message);
+    }
 }
 }

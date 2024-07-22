@@ -6,7 +6,7 @@
 namespace Context::Devices::IO::Networking::UDP {
 
 
-class Multicaster :
+class TRANSPORT_CPP_EXPORT Multicaster final :
         public NetworkDevice
 {
 public:
