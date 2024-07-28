@@ -90,9 +90,9 @@ namespace Context::Devices::IO::Networking {
         ERROR err;
         err.code = ERROR_CODE::NO_ERROR;
 
-        static thread_local char buffer[RECV_BUFFER_LEN];
+        thread_local char buffer[RECV_BUFFER_LEN];
 
-        auto handle = getDeviceHandle().value();
+        const auto handle = getDeviceHandle().value();
 
         sockaddr_storage peer_addr;
         socklen_t peer_addr_len = sizeof(peer_addr);

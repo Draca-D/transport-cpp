@@ -113,7 +113,7 @@ namespace Context::Devices::IO::Networking::UDP {
         return RETURN::NOK;
     }
 
-    Server::Server() : NetworkDevice() {
+    Server::Server() : NetworkDevice(), mLastPeer({}), mAddr({}) {
     }
 
     Server::~Server() {
@@ -228,7 +228,8 @@ namespace Context::Devices::IO::Networking::UDP {
                    pr->getPeerAddress().port == data.peer.port;
         });
 
-        mLastPeer = data.peer;
+        mLastPeer       = data.peer;
+        mPeerConnected  = true;
 
         if (relevant_peer == mPeers.end()) {
             // new peer
@@ -238,7 +239,7 @@ namespace Context::Devices::IO::Networking::UDP {
                 return;
             }
 
-            auto new_peer_raw = new Peer();
+            const auto new_peer_raw = new Peer();
             auto new_peer = PEER(new_peer_raw);
 
             using namespace std::placeholders;
@@ -267,7 +268,6 @@ namespace Context::Devices::IO::Networking::UDP {
             };
 
             mNewPeerNotify(data, std::move(new_peer));
-            mPeerConnected = true;
             mPeers.push_back(new_peer_raw);
         } else {
             (*relevant_peer)->notifyNewData(data);

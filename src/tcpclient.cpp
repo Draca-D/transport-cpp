@@ -57,25 +57,29 @@ void Client::setDisconnectNotification(const DISCONNECT_NOTIFY handler)
 
 IODevice::SYNC_RX_DATA Client::syncRequestResponse(const IODATA &data)
 {
-    auto send_ret = syncSend(data);
+    SYNC_RX_DATA resp = {RETURN::NOK, {}};
 
-    if(send_ret == RETURN::NOK){
-        return SYNC_RX_DATA{RETURN::NOK, {}};
+    if(syncSend(data) == RETURN::NOK){
+        return resp;
     }
 
-    return syncReceive();
+    resp = syncReceive();
+
+    return resp;
 }
 
 IODevice::SYNC_RX_DATA Client::syncRequestResponse(
         const IODATA &data, const std::chrono::milliseconds &timeout)
 {
-    auto send_ret = syncSend(data);
+    SYNC_RX_DATA resp = {RETURN::NOK, {}};
 
-    if(send_ret == RETURN::NOK){
-        return SYNC_RX_DATA{RETURN::NOK, {}};
+    if(syncSend(data) == RETURN::NOK){
+        return resp;
     }
 
-    return syncReceive(timeout);
+    resp = syncReceive(timeout);
+
+    return resp;
 }
 
 void Client::readyRead()

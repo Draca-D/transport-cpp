@@ -93,7 +93,9 @@ namespace Context::Devices::IO::Networking::UDP {
         void setNewPeerHandler(const NEW_PEER_NOTIFY &handler);
 
         [[nodiscard]] RETURN_CODE bind(const HostAddr &host, const IPVersion &ip_hint = IPVersion::ANY);
+
         [[nodiscard]] RETURN_CODE bind(const PORT &port, const IPVersion &ip_hint = IPVersion::ANY);
+
         [[nodiscard]] RETURN_CODE bind(const ConnectedHost &addr);
 
         [[nodiscard]] RETURN_CODE asyncSend(const IODATA &data) override;
@@ -102,7 +104,6 @@ namespace Context::Devices::IO::Networking::UDP {
 
         [[nodiscard]] RETURN_CODE asyncSend(std::unique_ptr<IODATA> data) override;
 
-        //message will be moved, original value will be invalidated
         [[nodiscard]] RETURN_CODE syncSend(const IODATA_CHOICE &data) override;
 
     private:
