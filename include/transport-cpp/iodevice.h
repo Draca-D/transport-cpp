@@ -25,6 +25,8 @@ private:
 
 private:
     IODATA_CALLBACK mCallback;
+
+protected:
     ASYNC_QUEUE     mOutgoingQueue;
 
 public:
@@ -44,8 +46,8 @@ public:
     [[nodiscard]] virtual RETURN_CODE asyncSend(std::unique_ptr<IODATA> data); //message will be moved, original value will be invalidated
     [[nodiscard]] virtual RETURN_CODE syncSend(const IODATA_CHOICE &data);
 
-    virtual SYNC_RX_DATA syncReceive(const std::chrono::milliseconds &timeout);
-    virtual SYNC_RX_DATA syncReceive();
+    [[nodiscard]] virtual SYNC_RX_DATA syncReceive(const std::chrono::milliseconds &timeout);
+    [[nodiscard]] virtual SYNC_RX_DATA syncReceive();
 
 protected:
     IODevice();
@@ -66,6 +68,7 @@ protected:
 
 private:
     virtual void ioDataCallbackSet();
+    virtual bool deviceIsReady() const;
 
     RETURN_CODE performSyncSend(const IODATA_CHOICE &data);
 };

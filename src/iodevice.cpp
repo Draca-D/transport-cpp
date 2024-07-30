@@ -30,7 +30,8 @@ void IODevice::setIODataCallback(const IODATA_CALLBACK &callback)
 }
 
 RETURN_CODE IODevice::asyncSend(const std::shared_ptr<IODATA> &data) {
-    if(!isValidForOutgoinAsync()){
+    if(!isValidForOutgoinAsync() && !deviceIsReady()){
+        setError(ERROR_CODE::INVALID_LOGIC, "Device is not ready or is not valid for async");
         return RETURN::NOK;
     }
 
@@ -47,7 +48,8 @@ RETURN_CODE IODevice::asyncSend(const std::shared_ptr<IODATA> &data) {
 }
 
 RETURN_CODE IODevice::asyncSend(std::unique_ptr<IODATA> data) {
-    if(!isValidForOutgoinAsync()){
+    if(!isValidForOutgoinAsync() && !deviceIsReady()){
+        setError(ERROR_CODE::INVALID_LOGIC, "Device is not ready or is not valid for async");
         return RETURN::NOK;
     }
 
@@ -65,7 +67,8 @@ RETURN_CODE IODevice::asyncSend(std::unique_ptr<IODATA> data) {
 
 RETURN_CODE IODevice::asyncSend(const IODATA &data)
 {
-    if(!isValidForOutgoinAsync()){
+    if(!isValidForOutgoinAsync() && !deviceIsReady()){
+        setError(ERROR_CODE::INVALID_LOGIC, "Device is not ready or is not valid for async");
         return RETURN::NOK;
     }
 
@@ -86,6 +89,11 @@ RETURN_CODE IODevice::syncSend(const IODATA_CHOICE &data)
 {
     if(!ioDataChoiceValid(data)) {
         setError(ERROR_CODE::INVALID_LOGIC, "Provided data has not been initialised");
+        return RETURN::NOK;
+    }
+
+    if(!deviceIsReady()){
+        setError(ERROR_CODE::INVALID_LOGIC, "Device is not ready");
         return RETURN::NOK;
     }
 
@@ -207,6 +215,10 @@ IODevice::IODevice() :
 
 void IODevice::ioDataCallbackSet() {/*unused*/}
 
+bool IODevice::deviceIsReady() const {
+    return getDeviceHandle().has_value();
+}
+
 void IODevice::registerNewHandle(DEVICE_HANDLE handle)
 {
     Device::registerNewHandle(handle);
@@ -319,11 +331,6 @@ bool IODevice::isValidForOutgoinAsync()
                                             "performed when a device is loaded into an engine."
                                             " Message will be dropped");
 
-        return false;
-    }
-
-    if(!getDeviceHandle()){
-        setError(ERROR_CODE::DEVICE_NOT_READY, "Device has not been configured yet. Unable to send. Dropping message");
         return false;
     }
 

@@ -1,3 +1,4 @@
+#include <cstring>
 #include <transport-cpp/device.h>
 #include <transport-cpp/engine.h>
 
@@ -7,7 +8,7 @@
 namespace Context{
 Device::~Device()
 {
-    logDebug("Device/Destructor", "Destroying device");
+    logDebug("Device::Destructor", "Destroying device");
 
     deloadEngine();
 }
@@ -19,20 +20,20 @@ Context::Device::ENGINE_PTR Context::Device::getCurrentLoadedEngine() const noex
 
 void Context::Device::loadEngine(ENGINE_PTR engine)
 {
-    logDebug("Device", "Loading new engine");
+    logDebug("Device::loadEngine", "Loading new engine");
 
     mLoadedEngine = engine;
 }
 
 void Context::Device::deloadEngine()
 {
-    logDebug("Device/deloadEngine", "Deloading Engine");
+    logDebug("Device::deloadEngine", "Deloading Engine");
 
-    auto currentEngine = mLoadedEngine;
+    const auto currentEngine = mLoadedEngine;
     mLoadedEngine = nullptr;
 
     if(currentEngine != nullptr){
-        logDebug("Device/deloadEngine", "Engine is valid, calling deregister device");
+        logDebug("Device::deloadEngine", "Engine is valid, calling deregister device");
         currentEngine->deRegisterDevice(this);
     }
 
@@ -40,32 +41,62 @@ void Context::Device::deloadEngine()
 
 void Device::readyRead()
 {
-    logDebug("Device", "Device is ready to perform a read, but functionality has not been implemented by child");
+    logDebug("Device::readyRead", "Device is ready to perform a read, but functionality has not been implemented by child");
 }
 
 void Device::readyWrite()
 {
-    logDebug("Device", "Device is ready to perform a write, but functionality has not been implemented by child");
+    logDebug("Device::readyWrite", "Device is ready to perform a write, but functionality has not been implemented by child");
 }
 
 void Device::readyError()
 {
-    logError("Device", "Device has an error, but functionality has not been implemented by child");
+    logError("Device::readyError", "Device has an error, but functionality has not been implemented by child");
 }
 
 void Device::readyHangup()
 {
-    logWarn("Device", "Device peer has hung up, but functionality has not been implemented by child");
+    logWarn("Device::readyHangup", "Device peer has hung up, but functionality has not been implemented by child");
 }
 
 void Device::readyInvalidRequest()
 {
-    logWarn("Device", "Invalid request, but functionality has not been implemented by child");
+    logWarn("Device::readyInvalidRequest", "Invalid request, but functionality has not been implemented by child");
 }
 
 void Device::readyPeerDisconnect()
 {
-    logWarn("Device", "Peer has disconnected, but functionality has not been implemented by child");
+    logWarn("Device::readyPeerDisconnect", "Peer has disconnected, but functionality has not been implemented by child");
+}
+
+std::string Device::errCodeToString(const ERROR_CODE &err_code) noexcept {
+    std::string err_str;
+
+    switch (err_code) {
+        case ERROR_CODE::NO_ERROR:
+            err_str = "NO_ERROR";
+            break;
+        case ERROR_CODE::INVALID_ARGUMENT:
+            err_str = "INVALID_ARGUMENT";
+            break;
+        case ERROR_CODE::INVALID_LOGIC:
+            err_str = "INVALID_LOGIC";
+            break;
+        case ERROR_CODE::DEVICE_NOT_READY:
+            err_str = "DEVICE_NOT_READY";
+            break;
+        case ERROR_CODE::POLL_ERROR:
+            err_str = "POLL_ERROR";
+            break;
+        case ERROR_CODE::TIMEOUT:
+            err_str = "TIMEOUT";
+            break;
+        case ERROR_CODE::GENERAL_ERROR:
+            err_str = "GENERAL_ERROR";
+            break;
+    }
+
+    return err_str;
 }
 
 Device::DEVICE_HANDLE Device::getDeviceHandle() const noexcept
@@ -86,7 +117,7 @@ Device::Device() = default;
 
 void Device::registerNewHandle(DEVICE_HANDLE handle)
 {
-    logDebug("Device", "Registering new handle");
+    logDebug("Device::registerNewHandle", "Registering new handle");
 
     if(mLoadedEngine != nullptr){
         mLoadedEngine->registerNewHandle(mDeviceHandle, handle, this);
@@ -95,25 +126,25 @@ void Device::registerNewHandle(DEVICE_HANDLE handle)
     mDeviceHandle = handle;
 }
 
-void Device::setError(DEVICE_ERROR code, const ERROR_STRING &description)
+void Device::setError(const DEVICE_ERROR &code, const ERROR_STRING &description)
 {
-    logDebug("Device", "New error added with description: " + description);
+    logDebug("Device::setError", "New error added with description: " + description);
 
     mLastError.code         = code;
     mLastError.description  = description;
 }
 
-void Device::requestRead()
+void Device::requestRead() const noexcept
 {
-    logDebug("Device", "Request Read");
+    logDebug("Device::requestRead", "Request Read");
     if(mLoadedEngine){
         mLoadedEngine->requestRead(mDeviceHandle);
     }
 }
 
-void Device::requestWrite()
+void Device::requestWrite() const noexcept
 {
-    logDebug("Device", "Request Write");
+    logDebug("Device::requestWrite", "Request Write");
     if(mLoadedEngine){
         mLoadedEngine->requestWrite(mDeviceHandle);
     }
@@ -176,5 +207,21 @@ void Device::logFatal(const std::string &calling_class, const std::string &messa
     if(mLogger) {
         mLogger->logFatal(calling_class, message);
     }
+}
+
+void Device::logLastError(const std::string &calling_class) {
+    const auto &[code, description] = mLastError;
+
+    std::string err_code_str;
+
+    if(std::holds_alternative<ERROR_CODE>(code)) {
+        err_code_str = "[Internal Error: " + errCodeToString(std::get<ERROR_CODE>(code)) + "]";
+    }else {
+        const auto error_code = std::get<SYS_ERR_CODE>(code);
+
+        err_code_str = "[System Error: " + std::to_string(error_code) + " | errno desc: " + strerror(error_code) + "]";
+    }
+
+    logError(calling_class, err_code_str + ": " + description);
 }
 }

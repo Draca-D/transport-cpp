@@ -50,11 +50,11 @@ public:
     ~Engine();
     Engine();
 
-    RETURN_CODE registerDevice(std::shared_ptr<Context::Device> device) noexcept;
-    RETURN_CODE registerDevice(Context::Device &device) noexcept;
+    [[nodiscard]] RETURN_CODE registerDevice(std::shared_ptr<Context::Device> device) noexcept;
+    [[nodiscard]] RETURN_CODE registerDevice(Context::Device &device) noexcept;
 
-    RETURN_CODE deRegisterDevice(std::shared_ptr<Context::Device> device) noexcept;
-    RETURN_CODE deRegisterDevice(Context::Device &device) noexcept;
+    [[nodiscard]] RETURN_CODE deRegisterDevice(std::shared_ptr<Context::Device> device) noexcept;
+    [[nodiscard]] RETURN_CODE deRegisterDevice(Context::Device &device) noexcept;
 
     void setLogger(const LOGGER &logger) noexcept;
 

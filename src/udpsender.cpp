@@ -41,7 +41,9 @@ RETURN_CODE Sender::connectToHost(const HostAddr &host, const IPVersion &ip_hint
 
 void Sender::readyError()
 {
-    connectToHost(mHost.addr, mHost.ip_hint);
+    if(connectToHost(mHost.addr, mHost.ip_hint) == RETURN::NOK) {
+        logLastError("UDPSender::readyError");
+    }
 }
 
 }

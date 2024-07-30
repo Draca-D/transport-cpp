@@ -18,7 +18,7 @@ public:
     [[nodiscard]] bool isConnected() const noexcept;
     [[nodiscard]] ConnectedHost getSetHostAddr() const noexcept;
 
-    RETURN_CODE connectToHost(const HostAddr &host, const IPVersion &ip_hint = IPVersion::ANY);
+    [[nodiscard]] RETURN_CODE connectToHost(const HostAddr &host, const IPVersion &ip_hint = IPVersion::ANY);
 
 private:
     void readyError() override;

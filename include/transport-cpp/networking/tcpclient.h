@@ -21,13 +21,13 @@ public:
     ConnectedHost getSetHostAddr();
     void disconnect();
 
-    RETURN_CODE connectToHost(const HostAddr &host, IPVersion ip_hint = IPVersion::ANY);
-    RETURN_CODE connectToHost(const ConnectedHost &host);
+    [[nodiscard]] RETURN_CODE connectToHost(const HostAddr &host, const IPVersion &ip_hint = IPVersion::ANY);
+    [[nodiscard]] RETURN_CODE connectToHost(const ConnectedHost &host);
 
-    void setDisconnectNotification(const DISCONNECT_NOTIFY handler);
+    void setDisconnectNotification(const DISCONNECT_NOTIFY &handler);
 
-    SYNC_RX_DATA syncRequestResponse(const IODATA &data);
-    SYNC_RX_DATA syncRequestResponse(const IODATA &data, const std::chrono::milliseconds &timeout);
+    [[nodiscard]] SYNC_RX_DATA syncRequestResponse(const IODATA &data);
+    [[nodiscard]] SYNC_RX_DATA syncRequestResponse(const IODATA &data, const std::chrono::milliseconds &timeout);
 
 private:
     void readyRead() override;

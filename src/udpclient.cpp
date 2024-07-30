@@ -57,6 +57,8 @@ IODevice::SYNC_RX_DATA Client::syncRequestResponse(const IODATA &data, const std
 }
 
 void Client::readyError() {
-    connectToHost(mHost.addr, mHost.ip_hint);
+    if(connectToHost(mHost.addr, mHost.ip_hint) == RETURN::NOK) {
+        logLastError("UDPClient::readyError");
+    }
 }
 }

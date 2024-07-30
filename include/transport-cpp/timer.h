@@ -25,11 +25,11 @@ public:
 
     RETURN_CODE stop() noexcept;
     RETURN_CODE resume() noexcept;
-    RETURN_CODE start(const std::chrono::milliseconds &duration) noexcept;
+    [[nodiscard]] RETURN_CODE start(const std::chrono::milliseconds &duration) noexcept;
 
     void setCallback(std::function<void(void)> callback);
 
-    bool isRunning() const noexcept;
+    [[nodiscard]] bool isRunning() const noexcept;
 
 private:
     void readyRead() override;

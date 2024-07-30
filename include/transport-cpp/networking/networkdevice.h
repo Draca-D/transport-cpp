@@ -98,24 +98,38 @@ namespace Context::Devices::IO::Networking {
     protected:
         NetworkDevice();
 
-        ERROR receiveMessage(NetworkMessage &message);
+        ERROR receiveMessage(NetworkMessage &message) const;
 
-        void notifyCallback(const NetworkMessage &message);
+        void notifyCallback(const NetworkMessage &message) const;
 
         RETURN_CODE createAndConnectSocket(const HostAddr &host, const IPVersion &ip_hint,
                                            const SOCK_STYLE &sock_style);
 
         RETURN_CODE createAndBindSocket(const HostAddr &host, const IPVersion &ip_hint, const SOCK_STYLE &sock_style);
 
-        RETURN_CODE sockToReuse(DEVICE_HANDLE handle);
+        RETURN_CODE sockToReuse(const DEVICE_HANDLE &handle);
 
-    private:
         void readyRead() override;
-
         void readyWrite() override;
 
+    private:
         RETURN_CODE performSendTo(const HostAddr &dest, const IODATA_CHOICE &data, const IPVersion &ip_hint);
     };
+
+    struct Interface {
+        std::string if_name;
+        std::string if_addr;
+        std::string netmask;
+        IPVersion ip_version;
+    };
+
+    using IFACE = Interface;
+    using IFACE_LIST = std::vector<IFACE>;
+
+    IFACE_LIST getAllInterfaces();
+
+    ADDR getLocalBroadcasterAddr(const std::string &if_name);
+    bool ifaceExists(const std::string &if_name);
 }
 
 #endif // NETWORKDEVICE_H

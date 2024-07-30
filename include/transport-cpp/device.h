@@ -6,7 +6,7 @@
 #include "transport-cpp.h"
 
 #include <optional>
-#include <stdio.h>
+#include <cstdio>
 #include <vector>
 #include <variant>
 
@@ -74,10 +74,10 @@ protected:
     Device();
 
     virtual void registerNewHandle(DEVICE_HANDLE handle);
-    void setError(DEVICE_ERROR code, const ERROR_STRING &description);
+    void setError(const DEVICE_ERROR &code, const ERROR_STRING &description);
 
-    void requestRead();
-    void requestWrite();
+    void requestRead() const noexcept;
+    void requestWrite() const noexcept;
     void destroyHandle();
     void closeHandle();
 
@@ -89,6 +89,8 @@ protected:
     void logError(const std::string &calling_class, const std::string &message) const;
     void logFatal(const std::string &calling_class, const std::string &message) const;
 
+    void logLastError(const std::string &calling_class);
+
     //Device Ready
     virtual void readyRead();
     virtual void readyWrite();
@@ -96,6 +98,8 @@ protected:
     virtual void readyHangup();
     virtual void readyInvalidRequest();
     virtual void readyPeerDisconnect();
+
+    static std::string errCodeToString(const ERROR_CODE &err_code) noexcept;
 };
 }
 

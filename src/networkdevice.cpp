@@ -86,7 +86,7 @@ namespace Context::Devices::IO::Networking {
     NetworkDevice::NetworkDevice() : IODevice() {
     }
 
-    Device::ERROR NetworkDevice::receiveMessage(NetworkMessage &message) {
+    Device::ERROR NetworkDevice::receiveMessage(NetworkMessage &message) const {
         ERROR err;
         err.code = ERROR_CODE::NO_ERROR;
 
@@ -136,7 +136,7 @@ namespace Context::Devices::IO::Networking {
         return err;
     }
 
-    void NetworkDevice::notifyCallback(const NetworkMessage &message) {
+    void NetworkDevice::notifyCallback(const NetworkMessage &message) const {
         if (mCallback) {
             mCallback(message);
         }
@@ -165,9 +165,7 @@ namespace Context::Devices::IO::Networking {
         hints.ai_socktype = sock_style; //SOCK_DGRAM for UDP | SOCK_STREAM for TCP
         hints.ai_flags = AI_PASSIVE; // fill in ip for me
 
-        auto status = info.loadHints(hints, host);
-
-        if (status != 0) {
+        if (const auto status = info.loadHints(hints, host); status != 0) {
             setError(ERROR_CODE::GENERAL_ERROR, std::string("unable to get address information: ")
                                                 + gai_strerror(status));
 
@@ -191,18 +189,10 @@ namespace Context::Devices::IO::Networking {
                 return RETURN::NOK;
             }
 
-            auto addr = reinterpret_cast<sockaddr *>(malloc(next_info->ai_addrlen));
-            memcpy(addr, next_info->ai_addr, next_info->ai_addrlen);
-            auto res = connect(sock, addr, next_info->ai_addrlen);
-
-            if (res != 0) {
+            if (const auto res = connect(sock, next_info->ai_addr, next_info->ai_addrlen); res != 0) {
                 close(sock);
-                free(addr);
-
                 continue;
             }
-
-            free(addr);
 
             registerNewHandle(sock);
 
@@ -388,7 +378,119 @@ namespace Context::Devices::IO::Networking {
         return RETURN::OK;
     }
 
-    RETURN_CODE NetworkDevice::sockToReuse(DEVICE_HANDLE handle) {
+    IFACE_LIST getAllInterfaces() {
+        std::vector<IFACE> interfaces;
+
+        ifaddrs * ifAddrStruct = nullptr;
+        ifaddrs * ifa = nullptr;
+
+        const void * tmpAddrPtr = nullptr;
+        const void * tmpMaskPtr = nullptr;
+
+        getifaddrs(&ifAddrStruct);
+
+        for (ifa = ifAddrStruct; ifa != nullptr; ifa = ifa->ifa_next) {
+            if (!ifa->ifa_addr) { continue;}
+
+            if (ifa->ifa_addr->sa_family == AF_INET) { // check it is IP4
+                // is a valid IP4 Address
+                tmpAddrPtr=&(reinterpret_cast<sockaddr_in *>(ifa->ifa_addr))->sin_addr;
+                tmpMaskPtr=&(reinterpret_cast<sockaddr_in *>(ifa->ifa_netmask))->sin_addr;
+
+                char addressBuffer[INET_ADDRSTRLEN];
+                char netmaskBuffer[INET_ADDRSTRLEN];
+
+                inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+                inet_ntop(AF_INET, tmpMaskPtr, netmaskBuffer, INET_ADDRSTRLEN);
+
+                interfaces.push_back({ifa->ifa_name, addressBuffer, netmaskBuffer, IPVersion::IPv4});
+            } else if (ifa->ifa_addr->sa_family == AF_INET6) { // check it is IP6
+                // is a valid IP6 Address
+                tmpAddrPtr=&(reinterpret_cast<sockaddr_in6 *>(ifa->ifa_addr))->sin6_addr;
+                tmpMaskPtr=&(reinterpret_cast<sockaddr_in6 *>(ifa->ifa_netmask))->sin6_addr;
+
+                char addressBuffer[INET6_ADDRSTRLEN];
+                char netmaskBuffer[INET6_ADDRSTRLEN];
+
+                inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
+                inet_ntop(AF_INET6, tmpMaskPtr, netmaskBuffer, INET6_ADDRSTRLEN);
+
+                interfaces.push_back({ifa->ifa_name, addressBuffer, netmaskBuffer, IPVersion::IPv6});
+            }
+        }
+
+        if (ifAddrStruct != nullptr) {
+            freeifaddrs(ifAddrStruct);
+        }
+
+        return interfaces;
+    }
+
+    ADDR getLocalBroadcasterAddr(const std::string &if_name) {
+        ifaddrs * ifAddrStruct = nullptr;
+        ifaddrs * ifa = nullptr;
+
+        const void * tmpAddrPtr = nullptr;
+        const void * tmpMaskPtr = nullptr;
+
+        getifaddrs(&ifAddrStruct);
+
+        std::string addr;
+
+        bool if_exists = false;
+
+        for (ifa = ifAddrStruct; ifa != nullptr; ifa = ifa->ifa_next) {
+            if (!ifa->ifa_addr) { continue;}
+
+            if(if_name != ifa->ifa_name) {
+                continue;
+            }
+
+            if_exists = true;
+
+            if (ifa->ifa_addr->sa_family == AF_INET) {
+                tmpAddrPtr=&(reinterpret_cast<sockaddr_in *>(ifa->ifa_addr))->sin_addr;
+                tmpMaskPtr=&(reinterpret_cast<sockaddr_in *>(ifa->ifa_netmask))->sin_addr;
+
+                const auto ipv4_addr = reinterpret_cast<const in_addr*>(tmpAddrPtr)->s_addr;
+                const auto ipv4_mask = reinterpret_cast<const in_addr*>(tmpMaskPtr)->s_addr;
+
+                const auto broadcast_addr = ipv4_addr | ~ipv4_mask;
+
+                char localBroadcastBuffer[INET_ADDRSTRLEN];
+
+                inet_ntop(AF_INET, &broadcast_addr, localBroadcastBuffer, INET_ADDRSTRLEN);
+
+                addr = localBroadcastBuffer;
+                break;
+            }
+        }
+
+        if (ifAddrStruct != nullptr) {
+            freeifaddrs(ifAddrStruct);
+        }
+
+        if(if_exists && addr.empty()) {
+            throw std::runtime_error("Provided interface name exists but does not have an ipv4 address. "
+                                     "Broadcast is an ipv4 only feature");
+        }
+
+        if(!if_exists) {
+            throw std::invalid_argument("Interface does not exist");
+        }
+
+        return addr;
+    }
+
+    bool ifaceExists(const std::string &if_name) {
+        const auto ifaces = getAllInterfaces();
+
+        return (std::find_if(ifaces.begin(), ifaces.end(), [&if_name](const IFACE &iface) {
+            return if_name == iface.if_name;
+        }) != ifaces.end());
+    }
+
+    RETURN_CODE NetworkDevice::sockToReuse(const DEVICE_HANDLE &handle) {
         if (!handle) {
             setError(ERROR_CODE::INVALID_LOGIC, "reuse requested, but no device handle present");
             return RETURN::NOK;

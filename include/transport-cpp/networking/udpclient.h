@@ -18,10 +18,10 @@ public:
     [[nodiscard]] bool isConnected() const noexcept;
     [[nodiscard]] ConnectedHost getSetHostAddr() const noexcept;
 
-    RETURN_CODE connectToHost(const HostAddr &host, const IPVersion &ip_hint = IPVersion::ANY);
+    [[nodiscard]] RETURN_CODE connectToHost(const HostAddr &host, const IPVersion &ip_hint = IPVersion::ANY);
 
-    SYNC_RX_DATA syncRequestResponse(const IODATA &data);
-    SYNC_RX_DATA syncRequestResponse(const IODATA &data, const std::chrono::milliseconds &timeout);
+    [[nodiscard]] SYNC_RX_DATA syncRequestResponse(const IODATA &data);
+    [[nodiscard]] SYNC_RX_DATA syncRequestResponse(const IODATA &data, const std::chrono::milliseconds &timeout);
 
 private:
     void readyError() override;

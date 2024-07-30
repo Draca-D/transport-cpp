@@ -61,9 +61,9 @@ public:
     void setNewPeerHandler(NEW_PEER_HANDLER handler) noexcept;
     [[nodiscard]] bool isBound() const noexcept;
 
-    RETURN_CODE bind(PORT port, IPVersion ip_hint = IPVersion::ANY) noexcept;
-    RETURN_CODE bind(const HostAddr &host, IPVersion ip_hint = IPVersion::ANY) noexcept;
-    RETURN_CODE bind(const ConnectedHost &host) noexcept;
+    [[nodiscard]] RETURN_CODE bind(PORT port, IPVersion ip_hint = IPVersion::ANY) noexcept;
+    [[nodiscard]] RETURN_CODE bind(const HostAddr &host, IPVersion ip_hint = IPVersion::ANY) noexcept;
+    [[nodiscard]] RETURN_CODE bind(const ConnectedHost &host) noexcept;
 
 
 private:

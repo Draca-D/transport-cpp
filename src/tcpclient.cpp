@@ -4,20 +4,11 @@
 #include <sys/poll.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <fcntl.h>
-#include <unistd.h>
-#include <net/if.h>
-#include <ifaddrs.h>
 
 namespace Context::Devices::IO::Networking::TCP {
 
-Client::Client() :
-    NetworkDevice()
-{
-
+Client::Client() : NetworkDevice(), mHost({}) {
 }
 
 ConnectedHost Client::getSetHostAddr()
@@ -31,7 +22,7 @@ void Client::disconnect()
     mIsConnected = false;
 }
 
-RETURN_CODE Client::connectToHost(const HostAddr &host, IPVersion ip_hint)
+RETURN_CODE Client::connectToHost(const HostAddr &host, const IPVersion &ip_hint)
 {
     disconnect();
 
@@ -50,7 +41,7 @@ RETURN_CODE Client::connectToHost(const ConnectedHost &host)
     return connectToHost(host.addr, host.ip_hint);
 }
 
-void Client::setDisconnectNotification(const DISCONNECT_NOTIFY handler)
+void Client::setDisconnectNotification(const DISCONNECT_NOTIFY &handler)
 {
     mToNotify = handler;
 }
@@ -84,14 +75,14 @@ IODevice::SYNC_RX_DATA Client::syncRequestResponse(
 
 void Client::readyRead()
 {
-    logDebug("TCPClient\readyReady", "incoming data");
+    logDebug("TCPClient/readyReady", "incoming data");
 
     NetworkMessage message;
 
     auto read_resp = readIOData(message.data);
 
     if(message.data.empty()){
-        logDebug("TCPClient\readyRead", "Peer closed connection");
+        logDebug("TCPClient/readyRead", "Peer closed connection");
         peerDisconnected();
         return;
     }
@@ -109,13 +100,13 @@ void Client::readyRead()
 
 void Client::readyHangup()
 {
-    logDebug("TCPClient\readyHangup", "Peer closed connection");
+    logDebug("TCPClient/readyHangup", "Peer closed connection");
     peerDisconnected();
 }
 
 void Client::readyPeerDisconnect()
 {
-    logDebug("TCPClient\readyPeerDisconnect", "Peer closed connection");
+    logDebug("TCPClient/readyPeerDisconnect", "Peer closed connection");
     peerDisconnected();
 }
 

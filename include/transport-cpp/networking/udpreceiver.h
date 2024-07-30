@@ -21,9 +21,9 @@ public:
     [[nodiscard]] bool isConnected() const noexcept;
     [[nodiscard]] ConnectedHost getBoundAddr() const noexcept;
 
-    RETURN_CODE bind(const HostAddr &host, const IPVersion &ip_hint = IPVersion::ANY);
-    RETURN_CODE bind(const PORT &port, const IPVersion &ip_hint = IPVersion::ANY);
-    RETURN_CODE bind(const ConnectedHost &addr);
+    [[nodiscard]] RETURN_CODE bind(const HostAddr &host, const IPVersion &ip_hint = IPVersion::ANY);
+    [[nodiscard]] RETURN_CODE bind(const PORT &port, const IPVersion &ip_hint = IPVersion::ANY);
+    [[nodiscard]] RETURN_CODE bind(const ConnectedHost &addr);
 };
 
 }
