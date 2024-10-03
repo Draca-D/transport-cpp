@@ -2,6 +2,7 @@
 // Created by dracad on 14/07/24.
 //
 
+#include <stdexcept>
 #include <transport-cpp/timer.h>
 
 #include <sys/timerfd.h>

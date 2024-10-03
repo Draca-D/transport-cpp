@@ -14,7 +14,7 @@ LibInformation all_info()
 {
     LibInformation info;
 
-    std::strncat(info.version, version(), VERSION_STR_LEN);
+    std::strncat(info.version, version(), sizeof(info.version) - 1);
 
     info.build          = build();
     info.architecture   = architecture();

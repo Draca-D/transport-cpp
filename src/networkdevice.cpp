@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <net/if.h>
 #include <ifaddrs.h>
+#include <stdexcept>
 
 static constexpr int32_t RECV_BUFFER_LEN = 65536;
 static constexpr int32_t IP_NAME_BUF_LEN = 256;
