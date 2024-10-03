@@ -83,6 +83,50 @@ namespace Context::Devices::IO::Networking {
         return performSendTo(dest, message, ip_hint);
     }
 
+    RETURN_CODE NetworkDevice::getLocalAddress(HostAddr &addr) noexcept {
+        if (!deviceIsReady()) {
+            setError(ERROR_CODE::INVALID_LOGIC, "Device is not ready, unable to get local address");
+            return RETURN::NOK;
+        }
+
+        auto sock = getDeviceHandle().value();
+        sockaddr local_addr = {};
+        socklen_t addr_len = sizeof(sockaddr);
+
+        memset(&local_addr, 0, addr_len);
+
+        if (getsockname(sock, &local_addr, &addr_len) == -1) {
+            setError(errno, "Unable to get socket addr info");
+            return RETURN::NOK;
+        }
+
+        thread_local char ip_buffer[256];
+
+        if (local_addr.sa_family == AF_INET) {
+            auto ipv4_addr = reinterpret_cast<sockaddr_in *>(&local_addr);
+            addr.port = ntohs(ipv4_addr->sin_port);
+
+            if (inet_ntop(AF_INET, &ipv4_addr->sin_addr, ip_buffer, sizeof(ip_buffer)) == nullptr) {
+                setError(errno, "Unable to convert binary address to string");
+                return RETURN::NOK;
+            }
+        } else if (local_addr.sa_family == AF_INET6) {
+            auto ipv6_addr = reinterpret_cast<sockaddr_in6 *>(&local_addr);
+            addr.port = ntohs(ipv6_addr->sin6_port);
+
+            if (inet_ntop(AF_INET6, &ipv6_addr->sin6_addr, ip_buffer, sizeof(ip_buffer)) == nullptr) {
+                setError(errno, "Unable to convert binary address to string");
+                return RETURN::NOK;
+            }
+        } else {
+            setError(ERROR_CODE::GENERAL_ERROR, "Unknown address family");
+            return RETURN::NOK;
+        }
+
+        addr.ip = ip_buffer;
+        return RETURN::OK;
+    }
+
     NetworkDevice::NetworkDevice() : IODevice() {
     }
 
@@ -94,7 +138,7 @@ namespace Context::Devices::IO::Networking {
 
         const auto handle = getDeviceHandle().value();
 
-        sockaddr_storage peer_addr;
+        sockaddr peer_addr;
         socklen_t peer_addr_len = sizeof(peer_addr);
 
         auto nbytes = recvfrom(handle, buffer, RECV_BUFFER_LEN, 0,
@@ -106,19 +150,32 @@ namespace Context::Devices::IO::Networking {
             err.description = "read error";
         } else {
             char ip[IP_NAME_BUF_LEN];
-            char port[PORT_BUF_LEN];
 
-            const auto peer = reinterpret_cast<sockaddr *>(&peer_addr);
+            if (peer_addr.sa_family == AF_INET) {
+                auto ipv4_addr = reinterpret_cast<sockaddr_in *>(&peer_addr);
+                message.peer.port = ntohs(ipv4_addr->sin_port);
 
-            if (getnameinfo(peer, peer_addr_len, ip, IP_NAME_BUF_LEN, port, PORT_BUF_LEN,
-                            NI_NUMERICHOST | NI_NUMERICSERV) == -1) {
-                err.code = errno;
-                err.description = "Unable to extract peer address";
+                if (inet_ntop(AF_INET, &ipv4_addr->sin_addr, ip, IP_NAME_BUF_LEN) == nullptr) {
+                    err.code = errno;
+                    err.description = "Unable to convert peer ipv4 addr to string";
+                    return err;
+                }
+            } else if (peer_addr.sa_family == AF_INET6) {
+                auto ipv6_addr = reinterpret_cast<sockaddr_in6 *>(&peer_addr);
+                message.peer.port = ntohs(ipv6_addr->sin6_port);
+
+                if (inet_ntop(AF_INET6, &ipv6_addr->sin6_addr, ip, IP_NAME_BUF_LEN) == nullptr) {
+                    err.code = errno;
+                    err.description = "Unable to convert peer ipv6 addr to string";
+                    return err;
+                }
+            } else {
+                err.code = ERROR_CODE::GENERAL_ERROR;
+                err.description = "Unknown peer address type";
                 return err;
             }
 
             message.peer.ip = ip;
-            message.peer.port = static_cast<decltype(message.peer.port)>(std::stoul(port));
         }
 
         while (nbytes > 0) {
@@ -129,7 +186,7 @@ namespace Context::Devices::IO::Networking {
             }
 
             nbytes = recvfrom(handle, buffer, RECV_BUFFER_LEN, 0,
-                              reinterpret_cast<sockaddr *>(&peer_addr),
+                              &peer_addr,
                               &peer_addr_len);
         }
 
@@ -150,9 +207,7 @@ namespace Context::Devices::IO::Networking {
         const SOCK_STYLE &sock_style) {
         AddrInfo info;
 
-        addrinfo hints;
-
-        memset(&hints, 0, sizeof(hints));
+        addrinfo hints = {};
 
         if (ip_hint == IPVersion::IPv4) {
             hints.ai_family = AF_INET;
@@ -209,9 +264,7 @@ namespace Context::Devices::IO::Networking {
         const SOCK_STYLE &sock_style) {
         AddrInfo info;
 
-        addrinfo hints;
-
-        memset(&hints, 0, sizeof(hints));
+        addrinfo hints = {};
 
         if (ip_hint == IPVersion::IPv4) {
             hints.ai_family = AF_INET;
@@ -326,9 +379,7 @@ namespace Context::Devices::IO::Networking {
 
         AddrInfo info;
 
-        addrinfo hints;
-
-        memset(&hints, 0, sizeof(hints));
+        addrinfo hints = {};
 
         if (ip_hint == IPVersion::IPv4) {
             hints.ai_family = AF_INET;
@@ -381,21 +432,22 @@ namespace Context::Devices::IO::Networking {
     IFACE_LIST getAllInterfaces() {
         std::vector<IFACE> interfaces;
 
-        ifaddrs * ifAddrStruct = nullptr;
-        ifaddrs * ifa = nullptr;
+        ifaddrs *ifAddrStruct = nullptr;
+        const ifaddrs *ifa = nullptr;
 
-        const void * tmpAddrPtr = nullptr;
-        const void * tmpMaskPtr = nullptr;
+        const void *tmpAddrPtr = nullptr;
+        const void *tmpMaskPtr = nullptr;
 
         getifaddrs(&ifAddrStruct);
 
         for (ifa = ifAddrStruct; ifa != nullptr; ifa = ifa->ifa_next) {
-            if (!ifa->ifa_addr) { continue;}
+            if (!ifa->ifa_addr) { continue; }
 
-            if (ifa->ifa_addr->sa_family == AF_INET) { // check it is IP4
+            if (ifa->ifa_addr->sa_family == AF_INET) {
+                // check it is IP4
                 // is a valid IP4 Address
-                tmpAddrPtr=&(reinterpret_cast<sockaddr_in *>(ifa->ifa_addr))->sin_addr;
-                tmpMaskPtr=&(reinterpret_cast<sockaddr_in *>(ifa->ifa_netmask))->sin_addr;
+                tmpAddrPtr = &(reinterpret_cast<sockaddr_in *>(ifa->ifa_addr))->sin_addr;
+                tmpMaskPtr = &(reinterpret_cast<sockaddr_in *>(ifa->ifa_netmask))->sin_addr;
 
                 char addressBuffer[INET_ADDRSTRLEN];
                 char netmaskBuffer[INET_ADDRSTRLEN];
@@ -404,10 +456,11 @@ namespace Context::Devices::IO::Networking {
                 inet_ntop(AF_INET, tmpMaskPtr, netmaskBuffer, INET_ADDRSTRLEN);
 
                 interfaces.push_back({ifa->ifa_name, addressBuffer, netmaskBuffer, IPVersion::IPv4});
-            } else if (ifa->ifa_addr->sa_family == AF_INET6) { // check it is IP6
+            } else if (ifa->ifa_addr->sa_family == AF_INET6) {
+                // check it is IP6
                 // is a valid IP6 Address
-                tmpAddrPtr=&(reinterpret_cast<sockaddr_in6 *>(ifa->ifa_addr))->sin6_addr;
-                tmpMaskPtr=&(reinterpret_cast<sockaddr_in6 *>(ifa->ifa_netmask))->sin6_addr;
+                tmpAddrPtr = &(reinterpret_cast<sockaddr_in6 *>(ifa->ifa_addr))->sin6_addr;
+                tmpMaskPtr = &(reinterpret_cast<sockaddr_in6 *>(ifa->ifa_netmask))->sin6_addr;
 
                 char addressBuffer[INET6_ADDRSTRLEN];
                 char netmaskBuffer[INET6_ADDRSTRLEN];
@@ -427,11 +480,11 @@ namespace Context::Devices::IO::Networking {
     }
 
     ADDR getLocalBroadcasterAddr(const std::string &if_name) {
-        ifaddrs * ifAddrStruct = nullptr;
-        ifaddrs * ifa = nullptr;
+        ifaddrs *ifAddrStruct = nullptr;
+        const ifaddrs *ifa = nullptr;
 
-        const void * tmpAddrPtr = nullptr;
-        const void * tmpMaskPtr = nullptr;
+        const void *tmpAddrPtr = nullptr;
+        const void *tmpMaskPtr = nullptr;
 
         getifaddrs(&ifAddrStruct);
 
@@ -440,20 +493,20 @@ namespace Context::Devices::IO::Networking {
         bool if_exists = false;
 
         for (ifa = ifAddrStruct; ifa != nullptr; ifa = ifa->ifa_next) {
-            if (!ifa->ifa_addr) { continue;}
+            if (!ifa->ifa_addr) { continue; }
 
-            if(if_name != ifa->ifa_name) {
+            if (if_name != ifa->ifa_name) {
                 continue;
             }
 
             if_exists = true;
 
             if (ifa->ifa_addr->sa_family == AF_INET) {
-                tmpAddrPtr=&(reinterpret_cast<sockaddr_in *>(ifa->ifa_addr))->sin_addr;
-                tmpMaskPtr=&(reinterpret_cast<sockaddr_in *>(ifa->ifa_netmask))->sin_addr;
+                tmpAddrPtr = &(reinterpret_cast<sockaddr_in *>(ifa->ifa_addr))->sin_addr;
+                tmpMaskPtr = &(reinterpret_cast<sockaddr_in *>(ifa->ifa_netmask))->sin_addr;
 
-                const auto ipv4_addr = reinterpret_cast<const in_addr*>(tmpAddrPtr)->s_addr;
-                const auto ipv4_mask = reinterpret_cast<const in_addr*>(tmpMaskPtr)->s_addr;
+                const auto ipv4_addr = reinterpret_cast<const in_addr *>(tmpAddrPtr)->s_addr;
+                const auto ipv4_mask = reinterpret_cast<const in_addr *>(tmpMaskPtr)->s_addr;
 
                 const auto broadcast_addr = ipv4_addr | ~ipv4_mask;
 
@@ -470,12 +523,12 @@ namespace Context::Devices::IO::Networking {
             freeifaddrs(ifAddrStruct);
         }
 
-        if(if_exists && addr.empty()) {
+        if (if_exists && addr.empty()) {
             throw std::runtime_error("Provided interface name exists but does not have an ipv4 address. "
-                                     "Broadcast is an ipv4 only feature");
+                "Broadcast is an ipv4 only feature");
         }
 
-        if(!if_exists) {
+        if (!if_exists) {
             throw std::invalid_argument("Interface does not exist");
         }
 

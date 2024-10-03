@@ -64,11 +64,13 @@ protected:
 
     bool isValidForOutgoinAsync();
 
+    virtual bool deviceIsReady() const;
+
     [[nodiscard]] static bool ioDataChoiceValid(const IODATA_CHOICE &data) noexcept;
 
 private:
     virtual void ioDataCallbackSet();
-    virtual bool deviceIsReady() const;
+
 
     RETURN_CODE performSyncSend(const IODATA_CHOICE &data);
 };

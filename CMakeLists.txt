@@ -27,7 +27,7 @@ set(HEADERS
     ${HEADER_DIR}/networking/udpmulticaster.h
 )
 
-add_library(transport-cpp 
+add_library(transport-cpp SHARED
     ${HEADERS}
 
     src/transport-cpp.cpp

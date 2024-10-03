@@ -70,6 +70,8 @@ public:
 
     void setLogger(const LOGGER &logger) noexcept;
 
+    void logLastError(const std::string &calling_class);
+
 protected:
     Device();
 
@@ -88,8 +90,6 @@ protected:
     void logWarn(const std::string &calling_class, const std::string &message) const;
     void logError(const std::string &calling_class, const std::string &message) const;
     void logFatal(const std::string &calling_class, const std::string &message) const;
-
-    void logLastError(const std::string &calling_class);
 
     //Device Ready
     virtual void readyRead();

@@ -18,16 +18,22 @@ namespace Context::Devices::IO::Networking {
     };
 
     struct HostAddr {
+        ~HostAddr() = default;
+
         ADDR ip;
         PORT port;
     };
 
     struct NetworkMessage {
+        ~NetworkMessage() = default;
+
         IODevice::IODATA data;
         HostAddr peer;
     };
 
     struct ConnectedHost {
+        ~ConnectedHost() = default;
+
         HostAddr addr;
         IPVersion ip_hint;
     };
@@ -94,6 +100,8 @@ namespace Context::Devices::IO::Networking {
 
         [[nodiscard]] virtual RETURN_CODE syncSendTo(const HostAddr &dest, const IODATA_CHOICE &message,
                                                      const IPVersion &ip_hint = IPVersion::ANY);
+
+        [[nodiscard]] RETURN_CODE getLocalAddress(HostAddr &addr) noexcept;
 
     protected:
         NetworkDevice();

@@ -8,8 +8,8 @@
 
 namespace Multicasting {
     namespace IPv4 {
-        static constexpr uint32_t NetmaskHostOrder = 0xF0000000;
-        static constexpr uint32_t NetworkHostOrder = 0xE0000000;
+        [[maybe_unused]] static constexpr uint32_t NetmaskHostOrder = 0xF0000000;
+        [[maybe_unused]] static constexpr uint32_t NetworkHostOrder = 0xE0000000;
 
         static constexpr uint32_t NetmaskNetOrder = 0x000000F0;
         static constexpr uint32_t NetworkNetOrder = 0x000000E0;
@@ -22,7 +22,8 @@ namespace Multicasting {
 }
 
 namespace Context::Devices::IO::Networking::UDP {
-    Multicaster::Multicaster() : NetworkDevice(), mIpVersion(IPVersion::ANY), mPublishedSockAddrLen(0) {
+    Multicaster::Multicaster() : NetworkDevice(), mSetInterface({}), mIpVersion(IPVersion::ANY),
+                                 mPublishedSockAddrLen(0) {
     }
 
     Multicaster::~Multicaster() {
@@ -77,7 +78,7 @@ namespace Context::Devices::IO::Networking::UDP {
             mPublishedSockAddr = nullptr;
         }
 
-        int domain = -1;
+        int domain;
         size_t addr_len;
 
         if (mIpVersion == IPVersion::IPv4) {
@@ -104,7 +105,7 @@ namespace Context::Devices::IO::Networking::UDP {
         }
 
         if (mIpVersion == IPVersion::IPv4) {
-            const uint32_t address = reinterpret_cast<in_addr *>(output)->s_addr;
+            const uint32_t address = static_cast<in_addr *>(output)->s_addr;
 
             if ((address & Multicasting::IPv4::NetmaskNetOrder) != Multicasting::IPv4::NetworkNetOrder) {
                 setError(ERROR_CODE::INVALID_ARGUMENT, "Provided address is not a multicast address");
@@ -112,18 +113,18 @@ namespace Context::Devices::IO::Networking::UDP {
                 return RETURN::NOK;
             }
 
-            const auto local_addr = reinterpret_cast<sockaddr_in *>(malloc(sizeof(sockaddr_in)));
+            const auto local_addr = static_cast<sockaddr_in *>(malloc(sizeof(sockaddr_in)));
 
             memset(local_addr, 0, sizeof(sockaddr_in));
 
             local_addr->sin_family = AF_INET;
-            local_addr->sin_port = group.port;
-            local_addr->sin_addr = *reinterpret_cast<in_addr *>(output);
+            local_addr->sin_port = htons(group.port);
+            local_addr->sin_addr = *static_cast<in_addr *>(output);
 
             mPublishedSockAddr = reinterpret_cast<sockaddr *>(local_addr);
             mPublishedSockAddrLen = sizeof(sockaddr_in);
         } else {
-            const auto address = reinterpret_cast<in6_addr *>(output)->s6_addr;
+            const auto address = static_cast<in6_addr *>(output)->s6_addr;
 
             if ((address[0] & Multicasting::IPv6::MajorByteNetmask) !=
                 Multicasting::IPv6::MajorByteNetwork) {
@@ -132,13 +133,13 @@ namespace Context::Devices::IO::Networking::UDP {
                 return RETURN::NOK;
             }
 
-            const auto local_addr = reinterpret_cast<sockaddr_in6 *>(malloc(sizeof(sockaddr_in6)));
+            const auto local_addr = static_cast<sockaddr_in6 *>(malloc(sizeof(sockaddr_in6)));
 
             memset(local_addr, 0, sizeof(sockaddr_in6));
 
             local_addr->sin6_family = AF_INET6;
-            local_addr->sin6_port = group.port;
-            local_addr->sin6_addr = *reinterpret_cast<in6_addr *>(output);
+            local_addr->sin6_port = htons(group.port);
+            local_addr->sin6_addr = *static_cast<in6_addr *>(output);
 
             mPublishedSockAddr = reinterpret_cast<sockaddr *>(local_addr);
             mPublishedSockAddrLen = sizeof(sockaddr_in6);
@@ -155,12 +156,12 @@ namespace Context::Devices::IO::Networking::UDP {
             return RETURN::NOK;
         }
 
-        if(mSetInterface.if_name.empty()) {
+        if (mSetInterface.if_name.empty()) {
             setError(ERROR_CODE::INVALID_LOGIC, "Interface has not been set");
             return RETURN::NOK;
         }
 
-        int domain = -1;
+        int domain;
         size_t addr_len;
 
         if (mIpVersion == IPVersion::IPv4) {
@@ -190,7 +191,7 @@ namespace Context::Devices::IO::Networking::UDP {
         size_t sub_addr_len;
 
         if (mIpVersion == IPVersion::IPv4) {
-            const uint32_t address = reinterpret_cast<in_addr *>(output)->s_addr;
+            const uint32_t address = static_cast<in_addr *>(output)->s_addr;
 
             if ((address & Multicasting::IPv4::NetmaskNetOrder) != Multicasting::IPv4::NetworkNetOrder) {
                 setError(ERROR_CODE::INVALID_ARGUMENT, "Provided address is not a multicast address");
@@ -198,18 +199,18 @@ namespace Context::Devices::IO::Networking::UDP {
                 return RETURN::NOK;
             }
 
-            const auto local_addr = reinterpret_cast<sockaddr_in *>(malloc(sizeof(sockaddr_in)));
+            const auto local_addr = static_cast<sockaddr_in *>(malloc(sizeof(sockaddr_in)));
 
             memset(local_addr, 0, sizeof(sockaddr_in));
 
             local_addr->sin_family = AF_INET;
-            local_addr->sin_port = group.port;
-            local_addr->sin_addr = *reinterpret_cast<in_addr *>(output);
+            local_addr->sin_port = htons(group.port);
+            local_addr->sin_addr = *static_cast<in_addr *>(output);
 
             sub_addr = reinterpret_cast<sockaddr *>(local_addr);
             sub_addr_len = sizeof(sockaddr_in);
         } else {
-            const auto address = reinterpret_cast<in6_addr *>(output)->s6_addr;
+            const auto address = static_cast<in6_addr *>(output)->s6_addr;
 
             if ((address[0] & Multicasting::IPv6::MajorByteNetmask) !=
                 Multicasting::IPv6::MajorByteNetwork) {
@@ -218,13 +219,13 @@ namespace Context::Devices::IO::Networking::UDP {
                 return RETURN::NOK;
             }
 
-            const auto local_addr = reinterpret_cast<sockaddr_in6 *>(malloc(sizeof(sockaddr_in6)));
+            const auto local_addr = static_cast<sockaddr_in6 *>(malloc(sizeof(sockaddr_in6)));
 
             memset(local_addr, 0, sizeof(sockaddr_in6));
 
             local_addr->sin6_family = AF_INET6;
-            local_addr->sin6_port = group.port;
-            local_addr->sin6_addr = *reinterpret_cast<in6_addr *>(output);
+            local_addr->sin6_port = htons(group.port);
+            local_addr->sin6_addr = *static_cast<in6_addr *>(output);
 
             sub_addr = reinterpret_cast<sockaddr *>(local_addr);
             sub_addr_len = sizeof(sockaddr_in6);
@@ -236,22 +237,21 @@ namespace Context::Devices::IO::Networking::UDP {
         int sock_opt_level;
         int sock_opt_name;
 
-        if(mIpVersion == IPVersion::IPv4) {
+        if (mIpVersion == IPVersion::IPv4) {
             mcast_size = sizeof(ip_mreq);
 
-            auto local_addr = reinterpret_cast<ip_mreq*>(malloc(mcast_size));
-            local_addr->imr_multiaddr = reinterpret_cast<sockaddr_in*>(sub_addr)->sin_addr;
+            const auto local_addr = static_cast<ip_mreq *>(malloc(mcast_size));
+            local_addr->imr_multiaddr = reinterpret_cast<sockaddr_in *>(sub_addr)->sin_addr;
             inet_pton(AF_INET, mSetInterface.if_addr.c_str(), &local_addr->imr_interface);
 
             mcast_registration = local_addr;
 
             sock_opt_level = IPPROTO_IP;
             sock_opt_name = IP_ADD_MEMBERSHIP;
-
-        }else {
+        } else {
             mcast_size = sizeof(ipv6_mreq);
-            auto local_addr = reinterpret_cast<ipv6_mreq*>(malloc(mcast_size));
-            local_addr->ipv6mr_multiaddr = reinterpret_cast<sockaddr_in6*>(sub_addr)->sin6_addr;
+            const auto local_addr = static_cast<ipv6_mreq *>(malloc(mcast_size));
+            local_addr->ipv6mr_multiaddr = reinterpret_cast<sockaddr_in6 *>(sub_addr)->sin6_addr;
             local_addr->ipv6mr_interface = if_nametoindex(mSetInterface.if_name.c_str());
 
             mcast_registration = local_addr;
@@ -260,7 +260,8 @@ namespace Context::Devices::IO::Networking::UDP {
             sock_opt_name = IPV6_ADD_MEMBERSHIP;
         }
 
-        if(setsockopt(getDeviceHandle().value(), sock_opt_level, sock_opt_name, mcast_registration, mcast_size) == -1) {
+        if (setsockopt(getDeviceHandle().value(), sock_opt_level, sock_opt_name, mcast_registration,
+                       mcast_size) == -1) {
             setError(errno, "Unable to register to address");
 
             free(sub_addr);
@@ -270,7 +271,7 @@ namespace Context::Devices::IO::Networking::UDP {
             return RETURN::NOK;
         }
 
-        if(::bind(getDeviceHandle().value(), sub_addr, sub_addr_len) == -1) {
+        if (::bind(getDeviceHandle().value(), sub_addr, sub_addr_len) == -1) {
             setError(errno, "Unable to bind address");
 
             free(sub_addr);
@@ -335,13 +336,13 @@ namespace Context::Devices::IO::Networking::UDP {
         int sock_opt_level;
         int sock_opt;
 
-        if(mIpVersion == IPVersion::IPv4) {
+        if (mIpVersion == IPVersion::IPv4) {
             addr_len = sizeof(in_addr);
             domain = AF_INET;
             addr_str = ipv4_iface->if_addr;
             sock_opt_level = IPPROTO_IP;
             sock_opt = IP_MULTICAST_IF;
-        }else {
+        } else {
             addr_len = sizeof(unsigned int);
             domain = AF_INET6;
             sock_opt_level = IPPROTO_IPV6;
@@ -350,7 +351,7 @@ namespace Context::Devices::IO::Networking::UDP {
 
         const auto output = malloc(addr_len);
 
-        if(mIpVersion == IPVersion::IPv4) {
+        if (mIpVersion == IPVersion::IPv4) {
             if (const auto res = inet_pton(domain, addr_str.c_str(), output); res == 0) {
                 setError(ERROR_CODE::INVALID_ARGUMENT, "Provided address is invalid");
                 free(output);
@@ -360,8 +361,8 @@ namespace Context::Devices::IO::Networking::UDP {
                 free(output);
                 return RETURN::NOK;
             }
-        }else {
-            *reinterpret_cast<unsigned int*>(output) = if_nametoindex(iface_name.c_str());
+        } else {
+            *static_cast<unsigned int *>(output) = if_nametoindex(iface_name.c_str());
         }
 
         if (setsockopt(socket, sock_opt_level, sock_opt,
@@ -371,9 +372,9 @@ namespace Context::Devices::IO::Networking::UDP {
             return RETURN::NOK;
         }
 
-        if(mIpVersion == IPVersion::IPv4) {
+        if (mIpVersion == IPVersion::IPv4) {
             mSetInterface = *ipv4_iface;
-        }else {
+        } else {
             mSetInterface = *ipv6_iface;
         }
 
@@ -383,6 +384,22 @@ namespace Context::Devices::IO::Networking::UDP {
 
     RETURN_CODE Multicaster::setInterface(const IFACE &iface) {
         return setInterface(iface.if_name);
+    }
+
+    RETURN_CODE Multicaster::setLoopback(const bool &enable) {
+        if (!mInitalised) {
+            setError(ERROR_CODE::INVALID_LOGIC, "Device has not been initialised yet");
+            return RETURN::NOK;
+        }
+
+        const int loop = enable;
+
+        if (setsockopt(getDeviceHandle().value(), IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop)) == -1) {
+            setError(errno, "Unable to set multicast loopback");
+            return RETURN::NOK;
+        }
+
+        return RETURN::OK;
     }
 
     void Multicaster::readyWrite() {
@@ -403,9 +420,9 @@ namespace Context::Devices::IO::Networking::UDP {
             data_ptr = std::get<std::unique_ptr<IODATA> >(*data).get();
         }
 
-        if(const auto nWrote = sendto(getDeviceHandle().value(),
-                                      data_ptr->data(), data_ptr->size(), 0, mPublishedSockAddr,
-                                      mPublishedSockAddrLen); nWrote < 0) {
+        if (const auto nWrote = sendto(getDeviceHandle().value(),
+                                       data_ptr->data(), data_ptr->size(), 0, mPublishedSockAddr,
+                                       mPublishedSockAddrLen); nWrote < 0) {
             logError("Multicaster/readyWrite", "Unable to perform sendTo: " + std::string(strerror(errno)));
         }
 

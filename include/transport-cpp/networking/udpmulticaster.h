@@ -36,10 +36,11 @@ public:
     [[nodiscard]] RETURN_CODE setInterface(const std::string &iface_name);
     [[nodiscard]] RETURN_CODE setInterface(const IFACE &iface);
 
-    void readyWrite() override;
-
+    [[nodiscard]] RETURN_CODE setLoopback(const bool &enable);
 private:
     [[nodiscard]] bool deviceIsReady() const override;
+
+    void readyWrite() override;
 };
 }
 
