@@ -40,7 +40,7 @@ RETURN_CODE IODevice::asyncSend(const std::shared_ptr<IODATA> &data) {
     return RETURN::NOK;
   }
 
-  mOutgoingQueue.emplace(data);
+  mIOOutgoingQueue.emplace(data);
 
   requestWrite();
 
@@ -60,7 +60,7 @@ RETURN_CODE IODevice::asyncSend(std::unique_ptr<IODATA> data) {
     return RETURN::NOK;
   }
 
-  mOutgoingQueue.emplace(std::move(data));
+  mIOOutgoingQueue.emplace(std::move(data));
 
   requestWrite();
 
@@ -80,7 +80,7 @@ RETURN_CODE IODevice::asyncSend(const IODATA &data) {
     return RETURN::NOK;
   }
 
-  mOutgoingQueue.emplace(data);
+  mIOOutgoingQueue.emplace(data);
 
   requestWrite();
 
@@ -244,7 +244,7 @@ void IODevice::registerNewHandle(DEVICE_HANDLE handle) {
 }
 
 void IODevice::readyWrite() {
-  if (mOutgoingQueue.empty()) {
+  if (mIOOutgoingQueue.empty()) {
     requestRead();
     return;
   }
@@ -255,9 +255,9 @@ void IODevice::readyWrite() {
     return;
   }
 
-  auto ret = performSyncSend(mOutgoingQueue.front());
+  auto ret = performSyncSend(mIOOutgoingQueue.front());
 
-  mOutgoingQueue.pop();
+  mIOOutgoingQueue.pop();
 
   if (ret == RETURN::NOK) {
     logError("IODevice/readyWrite",

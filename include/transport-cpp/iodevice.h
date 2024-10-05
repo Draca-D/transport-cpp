@@ -26,7 +26,7 @@ private:
   IODATA_CALLBACK mCallback;
 
 protected:
-  ASYNC_QUEUE mOutgoingQueue;
+  ASYNC_QUEUE mIOOutgoingQueue;
 
 public:
   virtual ~IODevice() override;

@@ -19,7 +19,8 @@ RETURN_CODE Receiver::bind(const HostAddr &host, const IPVersion &ip_hint) {
 
   if (createAndBindSocket(host, ip_hint, SOCK_DGRAM) == RETURN::OK) {
     mIsBound = true;
-    mAddr = {host, ip_hint};
+    mAddr.addr = host;
+    mAddr.ip_hint = ip_hint;
 
     return RETURN::OK;
   }

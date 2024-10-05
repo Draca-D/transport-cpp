@@ -430,12 +430,12 @@ RETURN_CODE Multicaster::setLoopback(const bool &enable) {
 }
 
 void Multicaster::readyWrite() {
-  if (IODevice::mOutgoingQueue.empty()) {
+  if (IODevice::mIOOutgoingQueue.empty()) {
     NetworkDevice::readyWrite();
     return;
   }
 
-  const auto data = &IODevice::mOutgoingQueue.front();
+  const auto data = &IODevice::mIOOutgoingQueue.front();
 
   const IODATA *data_ptr;
 
@@ -447,15 +447,15 @@ void Multicaster::readyWrite() {
     data_ptr = std::get<std::unique_ptr<IODATA>>(*data).get();
   }
 
-  if (const auto nWrote =
-          sendto(getDeviceHandle().value(), data_ptr->data(), data_ptr->size(),
-                 0, mPublishedSockAddr, mPublishedSockAddrLen);
+  if (const auto nWrote = sendto(getDeviceHandle().value(), data_ptr->data(),
+                                 data_ptr->size(), 0, mPublishedSockAddr,
+                                 static_cast<socklen_t>(mPublishedSockAddrLen));
       nWrote < 0) {
     logError("Multicaster/readyWrite",
              "Unable to perform sendTo: " + std::string(strerror(errno)));
   }
 
-  IODevice::mOutgoingQueue.pop();
+  IODevice::mIOOutgoingQueue.pop();
 
   requestWrite();
 }

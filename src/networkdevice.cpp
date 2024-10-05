@@ -351,9 +351,7 @@ void NetworkDevice::readyRead() {
     return;
   }
 
-  if (mCallback) {
-    mCallback(data);
-  }
+  notifyCallback(data);
 }
 
 void NetworkDevice::readyWrite() {

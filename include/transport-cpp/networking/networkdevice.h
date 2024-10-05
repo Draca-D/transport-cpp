@@ -14,8 +14,6 @@ using PORT = unsigned short;
 enum class IPVersion { ANY, IPv4, IPv6 };
 
 struct HostAddr {
-  ~HostAddr() = default;
-
   ADDR ip;
   PORT port;
 };
@@ -61,11 +59,11 @@ class TRANSPORT_CPP_EXPORT NetworkDevice : public IODevice {
 
     OutgoingMessage(HostAddr in_addr, const std::shared_ptr<IODATA> &data_ptr,
                     const IPVersion &version)
-        : addr(std::move(in_addr)), ip_hint(version), data(data_ptr) {}
+        : addr(std::move(in_addr)), data(data_ptr), ip_hint(version) {}
 
     OutgoingMessage(HostAddr in_addr, const IODATA &data_ptr,
                     const IPVersion &version)
-        : addr(std::move(in_addr)), ip_hint(version), data(data_ptr) {}
+        : addr(std::move(in_addr)), data(data_ptr), ip_hint(version) {}
 
     HostAddr addr;
     IODATA_CHOICE data;

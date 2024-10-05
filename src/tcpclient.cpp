@@ -23,7 +23,8 @@ RETURN_CODE Client::connectToHost(const HostAddr &host,
 
   if (createAndConnectSocket(host, ip_hint, SOCK_STREAM) == RETURN::OK) {
     mIsConnected = true;
-    mHost = {host, ip_hint};
+    mHost.addr = host;
+    mHost.ip_hint = ip_hint;
 
     return RETURN::OK;
   }
