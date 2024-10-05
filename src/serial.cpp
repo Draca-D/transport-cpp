@@ -2,8 +2,5 @@
 
 namespace Context::Devices::IO {
 
-Serial::Serial()
-{
-
-}
-}
+Serial::Serial() {}
+} // namespace Context::Devices::IO

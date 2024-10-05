@@ -5,13 +5,11 @@
 
 namespace Context::Devices::IO {
 
-class TRANSPORT_CPP_EXPORT Serial :
-        public IODevice
-{
+class TRANSPORT_CPP_EXPORT Serial : public IODevice {
 public:
-    Serial();
+  Serial();
 };
 
-}
+} // namespace Context::Devices::IO
 
 #endif // SERIAL_H

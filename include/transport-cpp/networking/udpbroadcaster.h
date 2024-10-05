@@ -5,13 +5,11 @@
 
 namespace Context::Devices::IO::Networking::UDP {
 
-class TRANSPORT_CPP_EXPORT Broadcaster final:
-        public NetworkDevice
-{
+class TRANSPORT_CPP_EXPORT Broadcaster final : public NetworkDevice {
 public:
-    Broadcaster();
+  Broadcaster();
 };
 
-}
+} // namespace Context::Devices::IO::Networking::UDP
 
 #endif // UDPBROADCASTER_H

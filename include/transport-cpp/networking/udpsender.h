@@ -5,24 +5,25 @@
 
 namespace Context::Devices::IO::Networking::UDP {
 
-class TRANSPORT_CPP_EXPORT Sender final :
-        public NetworkDevice
-{
+class TRANSPORT_CPP_EXPORT Sender final : public NetworkDevice {
 private:
-    bool            mIsConnected = false;
-    ConnectedHost   mHost;
+  bool mIsConnected = false;
+  ConnectedHost mHost;
+
 public:
-    Sender();
+  Sender();
 
-    void disconnect() noexcept;
-    [[nodiscard]] bool isConnected() const noexcept;
-    [[nodiscard]] ConnectedHost getSetHostAddr() const noexcept;
+  void disconnect() noexcept;
+  [[nodiscard]] bool isConnected() const noexcept;
+  [[nodiscard]] ConnectedHost getSetHostAddr() const noexcept;
 
-    [[nodiscard]] RETURN_CODE connectToHost(const HostAddr &host, const IPVersion &ip_hint = IPVersion::ANY);
+  [[nodiscard]] RETURN_CODE
+  connectToHost(const HostAddr &host,
+                const IPVersion &ip_hint = IPVersion::ANY);
 
 private:
-    void readyError() override;
+  void readyError() override;
 };
-}
+} // namespace Context::Devices::IO::Networking::UDP
 
 #endif // UDPSENDER_H

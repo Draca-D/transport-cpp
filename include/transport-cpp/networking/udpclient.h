@@ -5,28 +5,31 @@
 
 namespace Context::Devices::IO::Networking::UDP {
 
-class TRANSPORT_CPP_EXPORT Client final:
-        public NetworkDevice
-{
+class TRANSPORT_CPP_EXPORT Client final : public NetworkDevice {
 private:
-    bool            mIsConnected = false;
-    ConnectedHost   mHost;
+  bool mIsConnected = false;
+  ConnectedHost mHost;
+
 public:
-    Client();
+  Client();
 
-    void disconnect() noexcept;
-    [[nodiscard]] bool isConnected() const noexcept;
-    [[nodiscard]] ConnectedHost getSetHostAddr() const noexcept;
+  void disconnect() noexcept;
+  [[nodiscard]] bool isConnected() const noexcept;
+  [[nodiscard]] ConnectedHost getSetHostAddr() const noexcept;
 
-    [[nodiscard]] RETURN_CODE connectToHost(const HostAddr &host, const IPVersion &ip_hint = IPVersion::ANY);
+  [[nodiscard]] RETURN_CODE
+  connectToHost(const HostAddr &host,
+                const IPVersion &ip_hint = IPVersion::ANY);
 
-    [[nodiscard]] SYNC_RX_DATA syncRequestResponse(const IODATA &data);
-    [[nodiscard]] SYNC_RX_DATA syncRequestResponse(const IODATA &data, const std::chrono::milliseconds &timeout);
+  [[nodiscard]] SYNC_RX_DATA syncRequestResponse(const IODATA &data);
+  [[nodiscard]] SYNC_RX_DATA
+  syncRequestResponse(const IODATA &data,
+                      const std::chrono::milliseconds &timeout);
 
 private:
-    void readyError() override;
+  void readyError() override;
 };
 
-}
+} // namespace Context::Devices::IO::Networking::UDP
 
 #endif // UDPCLIENT_H

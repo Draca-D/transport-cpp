@@ -2,9 +2,5 @@
 
 namespace Context::Devices::IO::Networking::UDP {
 
-Broadcaster::Broadcaster() :
-    NetworkDevice()
-{
-
-}
-}
+Broadcaster::Broadcaster() : NetworkDevice() {}
+} // namespace Context::Devices::IO::Networking::UDP
