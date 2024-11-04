@@ -269,7 +269,7 @@ void IODevice::readyWrite() {
 }
 
 void IODevice::readyRead() {
-  logDebug("IODevice\readyReady", "incoming data");
+  logDebug("IODevice/readyReady", "incoming data");
 
   IODATA data;
 

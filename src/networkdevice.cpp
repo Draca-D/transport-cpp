@@ -317,16 +317,16 @@ RETURN_CODE NetworkDevice::createAndBindSocket(const HostAddr &host,
       return RETURN::NOK;
     }
 
+    if (sockToReuse(sock) == RETURN::NOK) {
+      close(sock);
+      return RETURN::NOK;
+    }
+
     auto res = ::bind(sock, next_info->ai_addr, next_info->ai_addrlen);
 
     if (res != 0) {
       close(sock);
       continue;
-    }
-
-    if (sockToReuse(sock) == RETURN::NOK) {
-      close(sock);
-      return RETURN::NOK;
     }
 
     registerNewHandle(sock);
