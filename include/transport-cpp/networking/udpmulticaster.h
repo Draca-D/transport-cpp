@@ -40,6 +40,8 @@ private:
   [[nodiscard]] bool deviceIsReady() const override;
 
   void readyWrite() override;
+
+  RETURN_CODE performSyncSend(const IODATA_CHOICE &data) override;
 };
 } // namespace Context::Devices::IO::Networking::UDP
 
