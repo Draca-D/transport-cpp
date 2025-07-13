@@ -247,8 +247,8 @@ void Server::readyRead() {
   mPeerConnected = true;
 
   if (relevant_peer == mPeers.end()) {
-    // new peer
-    printf("new peer\n");
+
+    logDebug("UDPServer", "New Peer connected");
 
     if (!mNewPeerNotify) {
       return;

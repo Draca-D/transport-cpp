@@ -4,6 +4,8 @@
 
 #include <algorithm>
 
+static constexpr int MAX_ARRAY_SIZE = 256;
+
 namespace Context {
 Engine::~Engine() {
   for (auto &device : mDeviceList) {
@@ -104,12 +106,13 @@ bool Engine::awaitOnceUpto(int ms) {
     return false;
   }
 
-  static thread_local std::vector<DEVICE_HANDLE_> ready_read(256);
-  static thread_local std::vector<DEVICE_HANDLE_> ready_write(256);
-  static thread_local std::vector<DEVICE_HANDLE_> error(256);
-  static thread_local std::vector<DEVICE_HANDLE_> hangup(256);
-  static thread_local std::vector<DEVICE_HANDLE_> invalid(256);
-  static thread_local std::vector<DEVICE_HANDLE_> peer_disconnect(256);
+  static thread_local std::vector<DEVICE_HANDLE_> ready_read(MAX_ARRAY_SIZE);
+  static thread_local std::vector<DEVICE_HANDLE_> ready_write(MAX_ARRAY_SIZE);
+  static thread_local std::vector<DEVICE_HANDLE_> error(MAX_ARRAY_SIZE);
+  static thread_local std::vector<DEVICE_HANDLE_> hangup(MAX_ARRAY_SIZE);
+  static thread_local std::vector<DEVICE_HANDLE_> invalid(MAX_ARRAY_SIZE);
+  static thread_local std::vector<DEVICE_HANDLE_> peer_disconnect(
+      MAX_ARRAY_SIZE);
 
   ready_read.clear();
   ready_write.clear();

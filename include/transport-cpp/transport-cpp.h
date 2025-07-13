@@ -17,6 +17,8 @@ namespace RETURN {
 static constexpr RETURN_CODE OK = 0;
 static constexpr RETURN_CODE NOK = 1;
 static constexpr RETURN_CODE PASSABLE = 2;
+// Passable means failure, but should be ok to continue.
+// e.g., double registering the same device. The command failed, but its fine.
 } // namespace RETURN
 
 namespace Transport {
