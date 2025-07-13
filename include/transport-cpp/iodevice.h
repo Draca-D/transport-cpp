@@ -75,7 +75,7 @@ protected:
 private:
   virtual void ioDataCallbackSet();
 
-  RETURN_CODE performSyncSend(const IODATA_CHOICE &data);
+  virtual RETURN_CODE performSyncSend(const IODATA_CHOICE &data);
 };
 
 } // namespace Context::Devices::IO

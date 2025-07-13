@@ -3,6 +3,7 @@
 #include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <transport-cpp/networking/udpmulticaster.h>
 
@@ -458,6 +459,79 @@ void Multicaster::readyWrite() {
   IODevice::mIOOutgoingQueue.pop();
 
   requestWrite();
+}
+
+RETURN_CODE Multicaster::performSyncSend(const IODATA_CHOICE &data)
+{
+  auto opt_hndl = getDeviceHandle();
+
+  if (!opt_hndl) {
+    setError(
+        ERROR_CODE::DEVICE_NOT_READY,
+        "Device has not been configured yet. Unable to send. Dropping message");
+    return RETURN::NOK;
+  }
+
+  auto handle = opt_hndl.value();
+
+  pollfd fd;
+
+  fd.events = POLLOUT;
+  fd.fd = handle;
+
+  auto nres = poll(&fd, 1, -1);
+
+  if (nres == -1) {
+    setError(errno, "Device cannot be polled for pollout");
+    return RETURN::NOK;
+  } else if (nres == 0) {
+    setError(
+        ERROR_CODE::POLL_ERROR,
+        "Poll returned 0 available devices for a forever timeout on sync send");
+    return RETURN::NOK;
+  }
+
+  if (fd.revents == POLLERR) {
+    readyError();
+
+    setError(ERROR_CODE::POLL_ERROR, "Poll had an error");
+    return RETURN::NOK;
+
+  } else if (fd.revents == POLLHUP) {
+    readyHangup();
+
+    setError(ERROR_CODE::POLL_ERROR, "Peer hung up");
+    return RETURN::NOK;
+
+  } else if (fd.revents == POLLRDHUP) {
+    readyPeerDisconnect();
+
+    setError(ERROR_CODE::POLL_ERROR, "Peer disconnected");
+    return RETURN::NOK;
+  }
+
+  const IODATA *data_ptr;
+
+  if (std::holds_alternative<IODATA>(data)) {
+    data_ptr = &std::get<IODATA>(data);
+  } else if (std::holds_alternative<std::shared_ptr<IODATA>>(data)) {
+    data_ptr = std::get<std::shared_ptr<IODATA>>(data).get();
+  } else {
+    data_ptr = std::get<std::unique_ptr<IODATA>>(data).get();
+  }
+
+  if (const auto nWrote = sendto(getDeviceHandle().value(),
+                                 data_ptr->data(),
+                                 data_ptr->size(),
+                                 0,
+                                 mPublishedSockAddr,
+                                 static_cast<socklen_t>(mPublishedSockAddrLen));
+      nWrote < 0) {
+    setError(errno, "Unable to write to provided file descriptor");
+    return RETURN::NOK;
+  }
+
+  return RETURN::OK;
 }
 
 bool Multicaster::deviceIsReady() const {
